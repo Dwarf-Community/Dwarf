@@ -29,7 +29,7 @@ And on Windows:
 After you've done that, start a new Django project in a directory of your choice as follows:
 `django-admin startproject project-name`
 (Replace project-name with the name of your project, e.g. dwarfproject, mybot or mysite.) This will create the folder structure of your Django project. Now you can download Dwarf by going to your project directory and issueing the following (use Git Bash for this if you're on Windows):
-`git clone https://github.com/AileenLumina/dwarf`
+`git clone https://bitbucket.org/AileenLumina/dwarf`
 You now need to adjust the settings.py file (in `/project-name/project-name`) as follows:
 - Set the database backend to PostgreSQL.
     Example:

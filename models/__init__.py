@@ -11,6 +11,7 @@ class User(AbstractBaseUser):
     # is_self = models.BooleanField(default=False)
     is_owner = models.BooleanField(default=False, db_index=True)
     is_admin = models.BooleanField(default=False, db_index=True)
+    message_count = models.IntegerField(default=0)
     command_count = models.IntegerField(default=0)
 
     USERNAME_FIELD = 'id'

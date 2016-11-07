@@ -14,7 +14,7 @@ from discord.ext import commands
 
 
 def is_owner_check(ctx):
-    return ctx.message.author.id == ManagementAPI.get_owner().id
+    return ctx.message.author.id == ManagementAPI.get_owner_id()
 
 
 def owner():

@@ -3,7 +3,7 @@ from redis_cache import RedisCache
 from dwarf import version
 
 
-CacheAPI = RedisCache('127.0.0.1:6379', {'PASSWORD': 'S3kr1t!', 'DEFAULT_TIMEOUT': None})
+CacheAPI = RedisCache('127.0.0.1:6379', {'PASSWORD': 'S3kr1t!', 'DB': 2})
 
 
 def set_digits(integer, number_of_digits):
@@ -18,14 +18,14 @@ class _CoreAPI:
         return CacheAPI.get(key='dwarf_number_of_extensions', default=0)
 
     def _set_number_of_extensions(self, number):
-        CacheAPI.set(key='dwarf_number_of_extensions', value=number)
+        CacheAPI.set(key='dwarf_number_of_extensions', value=number, timeout=None)
 
     def _install_extension(self, extension_name):
         number_of_extensions = self.get_number_of_extensions()
         key = 'dwarf_extension_' + set_digits(number_of_extensions + 1, 6)
         CacheAPI.add(key=key, value=extension_name)
         number_of_extensions += 1
-        CacheAPI.set(key='dwarf_number_of_extensions', value=number_of_extensions)
+        CacheAPI.set(key='dwarf_number_of_extensions', value=number_of_extensions, timeout=None)
 
     # TODO def _uninstall_extension(self, extension):
 

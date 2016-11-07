@@ -45,7 +45,7 @@ def initial_config():
     entered_token = input("> ")
 
     if len(entered_token) >= 50:  # Assuming token
-        CacheAPI.set(key='dwarf_token', value=entered_token)
+        CacheAPI.set(key='dwarf_token', value=entered_token, timeout=None)
     else:
         print(strings.not_a_token)
         exit(1)
@@ -100,7 +100,7 @@ bot = commands.Bot(command_prefix=list(ManagementAPI.get_prefixes()), formatter=
 
 @bot.event
 async def on_command(command, ctx):
-    user = get_user_model().objects.get_or_create(id=ctx.message.user.id)
+    user = get_user_model().objects.get_or_create(id=ctx.message.author.id)[0]
     user.command_count += 1
     user.save()
 
@@ -108,6 +108,9 @@ async def on_command(command, ctx):
 @bot.event
 async def on_message(message):
     if user_allowed(message):
+        user = ManagementAPI.get_user(message.author.id)[0]
+        user.message_count += 1
+        user.save()
         await bot.process_commands(message)
 
 
@@ -154,7 +157,7 @@ def user_allowed(message):
     if message.author.bot:
         return False
 
-    if ManagementAPI.get_owner() == message.author.id:
+    if ManagementAPI.get_owner_id() == message.author.id:
         return True
 
     return True
@@ -209,7 +212,7 @@ def set_logger():
 
 @bot.event
 async def on_ready():
-    if ManagementAPI.get_owner() is None:
+    if ManagementAPI.get_owner_id() is None:
         await set_bot_owner()
     print('------')
     print(strings.bot_is_online.format(bot.user.name))

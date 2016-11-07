@@ -69,7 +69,7 @@ class Management:
         # [p]set <subcommand>
 
         if ctx.invoked_subcommand is None:
-            await self.bot.send_command_help(ctx)
+            await send_command_help(ctx)
             pass
 
     @set.command(pass_context=True)
@@ -201,7 +201,7 @@ class Management:
                 data = await r.read()
             await self.bot.edit_profile(avatar=data)
             await self.bot.say("Done.")
-            log.debug("changed avatar")
+            log.debug("Changed avatar.")
         except Exception as e:
             await self.bot.say("Error, check your console or logs for "
                                "more information.")
@@ -217,7 +217,7 @@ class Management:
         if len(token) < 50:
             await self.bot.say("Invalid token.")
         else:
-            CacheAPI.set(key='dwarf_token', value=token)
+            CacheAPI.set(key='dwarf_token', value=token, timeout=None)
             await self.bot.say("Token set. Restart me.")
             log.debug("Token changed.")
 
@@ -254,12 +254,13 @@ class Management:
 
         await self.bot.say("Are you sure you want me to leave this server?"
                            " Type yes to confirm.")
-        response = await self.bot.wait_for_message(author=message.author)
+        response = await self.bot.wait_for_message(author=message.author, timeout=15)
 
-        if response.content.lower().strip() == "yes":
-            await self.bot.say("Alright. Bye :wave:")
-            log.debug('Leaving "{}"'.format(message.server.name))
-            await self.bot.leave_server(message.server)
+        if response is not None:
+            if response.content.lower().strip() == "yes":
+                await self.bot.say("Alright. Bye :wave:")
+                log.debug('Leaving "{}"'.format(message.server.name))
+                await self.bot.leave_server(message.server)
         else:
             await self.bot.say("Ok I'll stay here then.")
 
