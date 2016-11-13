@@ -73,6 +73,15 @@ class Core:
         if ctx.invoked_subcommand is None:
             await send_command_help(ctx)
             pass
+    
+    @commands.group(name="get", pass_context=True)
+    async def get(self, ctx):
+        """Group of commands that show the bot's settings."""
+        # [p]set <subcommand>
+
+        if ctx.invoked_subcommand is None:
+            await send_command_help(ctx)
+            pass
 
     @commands.group(name="add", pass_context=True)
     async def add(self, ctx):
@@ -241,6 +250,14 @@ class Core:
             await self.bot.say("Token set. Restart me.")
             log.debug("Token changed.")
 
+    @set.command(pass_context=True)
+    @permissions.owner()
+    async def repo(self, repository):
+        """Sets the bot's repository."""
+        
+        ManagementAPI.set_repository(repository)
+        await self.bot.say("My repository is now located at:\n" + repository)
+
     @add.command(pass_context=True)
     @permissions.owner()
     async def prefix(self, prefix):
@@ -270,6 +287,17 @@ class Core:
             await self.bot.say("The prefix '**" + prefix + "**' was removed successfully.")
         except PrefixNotFound:
             await self.bot.say("The prefix '**" + prefix + "**' could not be found.")
+
+    @get.command(pass_context=True)
+    @permissions.owner()
+    async def prefixes(self, ctx, prefix):
+        """Shows the bot's prefixes"""
+        
+        prefixes = ManagementAPI.get_prefixes()
+        if len(prefixes) > 1:
+            await self.bot.say("My prefixes are: '**" + "**', '**".join(prefixes) + "**'.")
+        else:  
+            await self.bot.say("My prefix is '**" + prefixes[0] + "**'.")
 
     @commands.command(pass_context=True)
     async def ping(self, ctx):
