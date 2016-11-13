@@ -75,3 +75,12 @@ error_in_command = "Error in command '{}' - {}: {}"
 not_available_in_dm = "That command is not available in DMs."
 
 owner_recognized = "{} has been recognized and set as owner."
+
+user_registered = """**{}**, thanks for using my commands!
+I just registered you in my database so you can use all my features. I hope that's okay for you.
+If it isn't, please use the `unregister` command. That will remove all of the data I store about you.
+The only thing I will still keep is your ID so I don't forget that you don't want data about you to be stored.
+Keep in mind that if I'm not allowed to store data about you, you won't be able to use many of my commands.
+If you ever change your mind about this, use the `register` command.
+
+Whatever your decision looks like, I wish you lots of fun on Discord."""

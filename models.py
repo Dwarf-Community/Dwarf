@@ -8,8 +8,6 @@ import importlib
 
 class User(AbstractBaseUser):
     id = models.BigIntegerField(primary_key=True)
-    # is_self = models.BooleanField(default=False)
-    is_owner = models.BooleanField(default=False, db_index=True)
     is_admin = models.BooleanField(default=False, db_index=True)
     message_count = models.IntegerField(default=0)
     command_count = models.IntegerField(default=0)
@@ -72,4 +70,4 @@ class Log(models.Model):
 # importing models introduced by extensions
 extensions = CoreAPI.get_extensions()
 for extension in extensions:
-    importlib.import_module(extension, '.')
+    importlib.import_module('dwarf.' + extension + '.models')

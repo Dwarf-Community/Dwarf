@@ -9,7 +9,7 @@ And they can make the bot fully ignore specific channels.
 
 
 from dwarf.models import User, Role, Channel
-from dwarf.api.management import ManagementAPI
+from dwarf.core.api import ManagementAPI
 from discord.ext import commands
 
 

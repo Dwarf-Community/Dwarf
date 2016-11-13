@@ -2,12 +2,12 @@ import discord
 from discord.ext import commands
 
 from dwarf import permissions
-from dwarf.api import CoreAPI, CacheAPI
-from dwarf.api.management import ManagementAPI, PrefixAlreadyExists, PrefixNotFound
+from dwarf.api import CoreAPI
 from dwarf.formatting import pagify
 from dwarf.models import User
 from dwarf.bot import send_command_help
-from dwarf.strings import management as strings
+from .api import ManagementAPI, PrefixAlreadyExists, PrefixNotFound
+from . import strings
 
 import asyncio
 import logging
@@ -16,10 +16,10 @@ import aiohttp
 import time
 
 
-log = logging.getLogger("dwarf.management")
+log = logging.getLogger("dwarf.core")
 
 
-class Management:
+class Core:
     """All owner-only commands that relate to bot management operations."""
 
     def __init__(self, bot):
@@ -56,7 +56,7 @@ class Management:
 
         result = python.format(result)
         if not ctx.message.channel.is_private:
-            censor = CacheAPI.get(key='dwarf_token')
+            censor = CoreAPI.get_token()
             r = "[EXPUNGED]"
             for w in censor:
                 if w != "":
@@ -237,7 +237,7 @@ class Management:
         if len(token) < 50:
             await self.bot.say("Invalid token.")
         else:
-            CacheAPI.set(key='dwarf_token', value=token, timeout=None)
+            CoreAPI.set_token(token)
             await self.bot.say("Token set. Restart me.")
             log.debug("Token changed.")
 
@@ -355,14 +355,15 @@ class Management:
     @commands.command(pass_context=True)
     async def contact(self, ctx, *, message : str):
         """Sends message to the owner"""
-        # [p]contact
+        # [p]contact <message>
 
-        if not User.objects.get(is_owner=True).exists():
+        owner_id = ManagementAPI.get_owner_id()
+        if owner_id is None:
             await self.bot.say("I have no owner set.")
             return
-        owner = User.objects.get(is_owner=True)[0].id
+        owner = await self.bot.get_user_info(owner_id)
         author = ctx.message.author
-        if ctx.message.channel.is_private is False:
+        if not ctx.message.channel.is_private:
             server = ctx.message.server
             source = ", server **{}** ({})".format(server.name, server.id)
         else:
@@ -387,8 +388,8 @@ class Management:
         # [p]info
 
         await self.bot.say(strings.info.format(
-            CacheAPI.get(key='dwarf_repository'),
-            CacheAPI.get(key='dwarf_invite_link')))
+            ManagementAPI.get_repository(),
+            ManagementAPI.get_official_invite()))
 
     async def leave_confirmation(self, server, owner, ctx):
         if not ctx.message.channel.is_private:
@@ -417,4 +418,4 @@ class Management:
 
 
 def setup(bot):
-    bot.add_cog(Management(bot))
+    bot.add_cog(Core(bot))

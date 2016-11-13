@@ -1,13 +1,15 @@
 """A Discord bot by AileenLumina, based on Red-DiscordBot, written on top of discord.py."""
 
-
+import discord
 from discord.ext import commands
 from django.contrib.auth import get_user_model
-from .api import CacheAPI, CoreAPI
-from .api.management import ManagementAPI
+from django.core.exceptions import ObjectDoesNotExist
+
+from .api import Cache, CoreAPI
+from .core.api import ManagementAPI
 from .models import Guild, Channel
 from . import strings
-import discord
+
 import sys
 import logging
 import logging.handlers
@@ -15,10 +17,10 @@ import importlib
 
 
 def force_input(msg):
-    entered_input = ""
-    while entered_input == "":
-        entered_input = input(msg)
-    return entered_input
+    entered_input = input(msg)
+    if entered_input:
+        return entered_input
+    return force_input(msg)
 
 
 def get_answer():
@@ -26,14 +28,14 @@ def get_answer():
     c = ""
     while c not in choices:
         c = input(">").lower()
-    if c.startswith("y"):
+    if c is choices[0] or c is choices[1]:
         return True
     else:
         return False
 
 
 def is_configured():
-    if CacheAPI.get(key='dwarf_token') is None:
+    if InternalAPI.get(key='token') is None:
         return False
     else:
         return True
@@ -45,7 +47,7 @@ def initial_config():
     entered_token = input("> ")
 
     if len(entered_token) >= 50:  # Assuming token
-        CacheAPI.set(key='dwarf_token', value=entered_token, timeout=None)
+        InternalAPI.set(key='token', value=entered_token, timeout=None)
     else:
         print(strings.not_a_token)
         exit(1)
@@ -65,15 +67,13 @@ def initial_config():
 
 def _load_cogs(bot):
     def load_cog(cogname):
-        module_obj = importlib.import_module('dwarf.commands.' + cogname)
-        importlib.reload(module_obj)
-        bot.load_extension('dwarf.commands.' + module_obj.__name__)
+        bot.load_extension('dwarf.' + cogname + '.commands')
 
-    bot.load_extension('dwarf.commands.management')
+    load_cog('core')
 
-    management_cog = bot.get_cog('Management')
+    management_cog = bot.get_cog('Core')
     if management_cog is None:
-        raise ImportError("Could not find the management cog.")
+        raise ImportError("Could not find the Core cog.")
 
     failed = []
     cogs = CoreAPI.get_extensions()
@@ -94,23 +94,30 @@ def _load_cogs(bot):
     return management_cog
 
 
+InternalAPI = Cache()
+
 bot = commands.Bot(command_prefix=list(ManagementAPI.get_prefixes()), formatter=None,
                    description=__doc__, pm_help=None)
 
 
 @bot.event
 async def on_command(command, ctx):
-    user = get_user_model().objects.get_or_create(id=ctx.message.author.id)[0]
+    author = ctx.message.author
+    user = get_user_model().objects.get_or_create(id=author.id)[0]
     user.command_count += 1
     user.save()
+    bot.send_message(author, strings.user_registered.format(author.name))
 
 
 @bot.event
 async def on_message(message):
     if user_allowed(message):
-        user = ManagementAPI.get_user(message.author.id)[0]
-        user.message_count += 1
-        user.save()
+        try:
+            user = ManagementAPI.get_user(message.author.id)[0]
+            user.message_count += 1
+            user.save()
+        except ObjectDoesNotExist:
+            pass
         await bot.process_commands(message)
 
 
@@ -192,7 +199,7 @@ def set_logger():
         datefmt="[%d/%m/%Y %H:%M]"))
     logger.addHandler(handler)
 
-    logger = logging.getLogger("dwarf")
+    logger = logging.getLogger(CoreAPI.get_app_name())
     logger.setLevel(logging.INFO)
 
     red_format = logging.Formatter(
@@ -218,9 +225,9 @@ async def on_ready():
     print(strings.bot_is_online.format(bot.user.name))
     print('------')
     print(strings.connected_to)
-    print(strings.connected_to_servers.format(get_user_model().objects.count()))
-    print(strings.connected_to_channels.format(Guild.objects.count()))
-    print(strings.connected_to_users.format(Channel.objects.count()))
+    print(strings.connected_to_servers.format(Guild.objects.count()))
+    print(strings.connected_to_channels.format(Channel.objects.count()))
+    print(strings.connected_to_users.format(get_user_model().objects.count()))
     print("\n{} active cogs".format(CoreAPI.get_number_of_extensions()))
     prefix_label = strings.prefix_singular
     if len(ManagementAPI.get_prefixes()) > 1:
@@ -245,10 +252,10 @@ def main():
 
     print(strings.logging_into_discord)
     print(strings.keep_updated)
-    print(strings.official_server.format(CacheAPI.get(key='dwarf_invite_link', default='')))
+    print(strings.official_server.format(InternalAPI.get(key='invite_link', default='')))
 
     try:
-        yield from bot.login(CacheAPI.get(key='dwarf_token'))
+        yield from bot.login(InternalAPI.get(key='token'))
     except TypeError as e:
         print(e)
         sys.exit(strings.update_the_api)
