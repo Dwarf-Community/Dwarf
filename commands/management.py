@@ -3,6 +3,7 @@ from discord.ext import commands
 
 from dwarf import permissions
 from dwarf.api import CoreAPI, CacheAPI
+from dwarf.api.management import ManagementAPI, PrefixAlreadyExists, PrefixNotFound
 from dwarf.formatting import pagify
 from dwarf.models import User
 from dwarf.bot import send_command_help
@@ -12,6 +13,7 @@ import asyncio
 import logging
 import traceback
 import aiohttp
+import time
 
 
 log = logging.getLogger("dwarf.management")
@@ -68,6 +70,24 @@ class Management:
         """Group of commands that change the bot's settings."""
         # [p]set <subcommand>
 
+        if ctx.invoked_subcommand is None:
+            await send_command_help(ctx)
+            pass
+
+    @commands.group(name="add", pass_context=True)
+    async def add(self, ctx):
+        """Group of commands that add items to some of the bot's settings."""
+        # [p]add <subcommand>
+        
+        if ctx.invoked_subcommand is None:
+            await send_command_help(ctx)
+            pass
+
+    @commands.group(name="remove", pass_context=True)
+    async def remove(self, ctx):
+        """Group of commands that remove items from some of the bot's settings."""
+        # [p]remove <subcommand>
+        
         if ctx.invoked_subcommand is None:
             await send_command_help(ctx)
             pass
@@ -221,12 +241,53 @@ class Management:
             await self.bot.say("Token set. Restart me.")
             log.debug("Token changed.")
 
-    @set.command(pass_context=True)
+    @add.command(pass_context=True)
+    @permissions.owner()
+    async def prefix(self, prefix):
+        """Adds a prefix to the bot."""
+        
+        if prefix.startswith('"') and prefix.endswith('"'):
+            prefix = prefix[1:len(prefix)-1]
+        
+        try:
+            ManagementAPI.add_prefix(prefix)
+            self.bot.command_prefix = ManagementAPI.get_prefixes()
+            await self.bot.say("The prefix '**" + prefix + "**' was added successfully.")
+        except PrefixAlreadyExists:
+            await self.bot.say("The prefix '**" + prefix + "**' could not be added as it is already a prefix.")
+
+    @remove.command(pass_context=True)
+    @permissions.owner()
+    async def prefix(self, ctx, prefix):
+        """Removes a prefix from the bot."""
+        
+        if prefix.startswith('"') and prefix.endswith('"'):
+            prefix = prefix[1:len(prefix)-1]
+        
+        try:
+            ManagementAPI.remove_prefix(prefix)
+            self.bot.command_prefix = ManagementAPI.get_prefixes()
+            await self.bot.say("The prefix '**" + prefix + "**' was removed successfully.")
+        except PrefixNotFound:
+            await self.bot.say("The prefix '**" + prefix + "**' could not be found.")
+
+    @commands.command(pass_context=True)
+    async def ping(self, ctx):
+        """Calculates the ping time."""
+        # [p]ping
+        
+        t1 = time.perf_counter()
+        await self.bot.send_typing(ctx.message.channel)
+        t2 = time.perf_counter()
+        await self.bot.say("Pong.\nTime: " + str(round((t2-t1)*1000)) + "ms")
+
+    @commands.command(pass_context=True)
     @permissions.owner()
     async def shutdown(self):
         """Shuts down Dwarf."""
         # [p]shutdown
 
+        await self.bot.say("I'll be right back!")
         await self.bot.logout()
 
     async def get_command(self, command):
@@ -252,9 +313,9 @@ class Management:
 
         message = ctx.message
 
-        await self.bot.say("Are you sure you want me to leave this server?"
-                           " Type yes to confirm.")
-        response = await self.bot.wait_for_message(author=message.author, timeout=15)
+        await self.bot.say("Are you sure you want me to leave this server? "
+                           "Type yes to confirm.")
+        response = await self.bot.wait_for_message(author=message.author, timeout=30)
 
         if response is not None:
             if response.content.lower().strip() == "yes":
@@ -311,8 +372,8 @@ class Management:
         try:
             await self.bot.send_message(owner, message)
         except discord.errors.InvalidArgument:
-            await self.bot.say("I cannot send your message, I'm unable to find"
-                               " my owner... *sigh*")
+            await self.bot.say("I cannot send your message, I'm unable to find "
+                               "my owner... *sigh*")
         except discord.errors.HTTPException:
             await self.bot.say("Your message is too long.")
         except:

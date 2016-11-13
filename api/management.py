@@ -29,7 +29,19 @@ class _ManagementAPI:
 
     def remove_prefix(self, prefix):
         number_of_prefixes = self.get_number_of_prefixes()
-        CacheAPI.set(key='dwarf_prefix_' + set_digits(number_of_prefixes, 6), value=prefix, timeout=None)
+        prefixes = self.get_prefixes()
+        prefix_nr = 0
+        for i in range(number_of_prefixes - 1):
+            if prefixes[i] == prefix:
+                prefix_nr = i + 1
+                break
+        if prefix_nr == 0:
+            raise PrefixNotFound
+        if prefix_nr != number_of_prefixes:
+            CacheAPI.set(key='dwarf_prefix_' + set_digits(prefix_nr, 6),
+                         value=CacheAPI.get(key='dwarf_prefix_' + set_digits(number_of_prefixes, 6)),
+                         timeout=None)
+        CacheAPI.delete(key='dwarf_prefix_' + set_digits(number_of_prefixes, 6))
         self._set_number_of_prefixes(number_of_prefixes - 1)
 
     def get_default_prefix(self):
@@ -51,8 +63,7 @@ class _ManagementAPI:
         prefix_keys = []
         for i in range(number_of_prefixes):
             prefix_keys.append('dwarf_prefix_' + set_digits(i + 1, 6))
-        prefixes = CacheAPI.get_many(keys=prefix_keys).values()
-        return prefixes
+        return list(CacheAPI.get_many(keys=prefix_keys).values())
 
     def get_owner_id(self):
         return CacheAPI.get(key='dwarf_owner')
