@@ -19,38 +19,23 @@ class _ManagementAPI:
     def __init__(self):
         self.cache = Cache()
 
-    def get_number_of_prefixes(self):
-        return self.cache.get(key='number_of_prefixes', default=0)
+    def get_prefixes(self):
+        return self.cache.get(key='prefixes')
 
-    def _set_number_of_prefixes(self, number):
-        return self.cache.set(key='number_of_prefixes', value=number, timeout=None)
+    def set_prefixes(self, prefixes):
+        self.cache.set('prefixes', prefixes)
 
     def add_prefix(self, prefix):
         prefixes = self.get_prefixes()
         if prefix in prefixes:
             raise PrefixAlreadyExists
-        number_of_prefixes = self.get_number_of_prefixes()
-        self.cache.set(key='prefix_' + set_digits(number_of_prefixes + 1, 6), value=prefix, timeout=None)
-        number_of_prefixes += 1
-        self._set_number_of_prefixes(number_of_prefixes)
+        prefixes.append(prefix)
+        self.cache.set(key='prefixes', value=prefixes, timeout=None)
 
     def remove_prefix(self, prefix):
-        number_of_prefixes = self.get_number_of_prefixes()
         prefixes = self.get_prefixes()
-        prefix_nr = 0
-        for i in range(number_of_prefixes - 1):
-            if prefixes[i] == prefix:
-                prefix_nr = i + 1
-                break
-        if prefix_nr == 0:
-            raise PrefixNotFound
-        if prefix_nr != number_of_prefixes:
-            self.cache.set(key='prefix_' + set_digits(prefix_nr, 6),
-                         value=self.cache.get(key='prefix_' + set_digits(number_of_prefixes, 6)),
-                         timeout=None)
-        self.cache.delete(key='prefix_' + set_digits(number_of_prefixes, 6))
-        number_of_prefixes -= 1
-        self._set_number_of_prefixes(number_of_prefixes)
+        prefixes.remove(prefix)
+        self.set_prefixes(prefixes)
 
     def get_default_prefix(self):
         default_prefix_id = self.cache.get(key='default_prefix')
@@ -59,19 +44,12 @@ class _ManagementAPI:
     def set_default_prefix(self, prefix):
         prefixes = self.get_prefixes()
         found_prefix = False
-        for i in range(self.get_number_of_prefixes()):
+        for i in range(len(prefixes) - 1):
             if prefixes[i] == prefix:
                 self.cache.set(key='default_prefix', value=i, timeout=None)
                 found_prefix = True
         if not found_prefix:
             raise PrefixNotFound
-
-    def get_prefixes(self):
-        number_of_prefixes = self.get_number_of_prefixes()
-        prefix_keys = []
-        for i in range(number_of_prefixes):
-            prefix_keys.append('prefix_' + set_digits(i + 1, 6))
-        return self.cache.get_many(keys=prefix_keys)
 
     def get_owner_id(self):
         return self.cache.get(key='owner')

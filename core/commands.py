@@ -239,7 +239,7 @@ class Core:
 
     @set.command(pass_context=True)
     @permissions.owner()
-    async def token(self, token):
+    async def token(self, ctx, token):
         """Sets the bot's login token."""
         # [p]set token <token>
 
@@ -252,11 +252,19 @@ class Core:
 
     @set.command(pass_context=True)
     @permissions.owner()
-    async def repo(self, repository):
+    async def repo(self, ctx, repository):
         """Sets the bot's repository."""
         
         ManagementAPI.set_repository(repository)
-        await self.bot.say("My repository is now located at:\n" + repository)
+        await self.bot.say("My repository is now located at:\n<" + repository + ">")
+
+    @set.command(pass_context=True)
+    @permissions.owner()
+    async def officialinvite(self, ctx, invite):
+        """Sets the bot's official server's invite URL."""
+        
+        ManagementAPI.set_official_invite(invite)
+        await self.bot.say("My official server invite is now:\n<" + invite + ">")
 
     @add.command(pass_context=True)
     @permissions.owner()
@@ -290,12 +298,12 @@ class Core:
 
     @get.command(pass_context=True)
     @permissions.owner()
-    async def prefixes(self, ctx, prefix):
+    async def prefixes(self, ctx):
         """Shows the bot's prefixes"""
         
         prefixes = ManagementAPI.get_prefixes()
         if len(prefixes) > 1:
-            await self.bot.say("My prefixes are: '**" + "**', '**".join(prefixes) + "**'.")
+            await self.bot.say("My prefixes are: '**" + "**', '**".join(prefixes) + "**'")
         else:  
             await self.bot.say("My prefix is '**" + prefixes[0] + "**'.")
 
