@@ -12,9 +12,8 @@ Have fun! If you need help, drop by [my Discord server](https://discord.me/Ailee
 
 ### Dwarf - Quick Install Guide
 
-First off, you need Python 3.5 or above, PostgreSQL and Redis (the Windows port works, too). After that, start a terminal session (cmd.exe on Windows) and install virtualenv and virtualenvwrapper:
+First off, you need Python 3.5 or above, PostgreSQL and Redis (the Windows port works, too). After that, start a terminal session (cmd.exe on Windows) and install virtualenv:
 `pip3 install virtualenv`
-`pip3 install virtualenvwrapper`
 Once you have that, create a virtual environment as follows:
 `virtualenv path/to/where/you/want/to/create/your/virtualenv`
 Any path will do; I'd suggest `/djangoenv`. After you've created the virtualenv, you'll need to enter/activate it. On Linux, that would be:
@@ -22,10 +21,7 @@ Any path will do; I'd suggest `/djangoenv`. After you've created the virtualenv,
 And on Windows:
 `/djangoenv/Scripts/activate.bat`
 (Replace /djangoenv with the path to your virtual environment.) You should now see the name of your virtualenv in brackets (e.g. `(djangoenv)`). If you do, you can now start installing the requirements:
-`pip3 install django`
-`pip3 install django-redis-cache`
-`pip3 install psycopg2`
-`pip3 install discord.py`
+`pip install django django-redis-cache psycopg2 discord.py`
 After you've done that, start a new Django project in a directory of your choice as follows:
 `django-admin startproject project-name`
 (Replace project-name with the name of your project, e.g. dwarfproject, mybot or mysite.) This will create the folder structure of your Django project. Now you can download Dwarf by going to your project directory and issueing the following (use Git Bash for this if you're on Windows):

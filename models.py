@@ -35,7 +35,6 @@ class Guild(models.Model):
 class Channel(models.Model):
     id = models.BigIntegerField(primary_key=True)
     guild = models.ForeignKey(Guild, on_delete=models.CASCADE)
-    # TODO is_stats_channel = models.BooleanField(default=False)
 
 
 class Role(models.Model):
@@ -53,6 +52,7 @@ class Message(models.Model):
     user = models.ForeignKey(User, db_index=True, on_delete=models.CASCADE)
     channel = models.ForeignKey(Channel, on_delete=models.CASCADE)
     content = models.TextField(max_length=2048)
+    clean_content = models.TextField(max_length=2048)
 
 
 class String(models.Model):

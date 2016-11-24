@@ -181,7 +181,7 @@ async def get_oauth_url():
 async def set_bot_owner():
     try:
         data = await bot.application_info()
-        ManagementAPI._set_owner(data.owner.id)
+        ManagementAPI.set_owner_id(data.owner.id)
     except AttributeError:
         print(strings.update_the_api)
         return

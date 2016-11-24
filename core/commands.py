@@ -450,7 +450,7 @@ class Core:
         """Shows the bot's current version"""
         # [p]version
 
-        await self.bot.say("Current version: " + CoreAPI.get_version())
+        await self.bot.say("Current version: " + CoreAPI.get_dwarf_version())
 
 
 def setup(bot):
