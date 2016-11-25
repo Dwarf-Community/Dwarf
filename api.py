@@ -41,8 +41,8 @@ class Cache:
         """
         
         if not self.extension:
-            return self.backend.get(key='_'.join([app_name, key]), default=default)
-        return self.backend.get(key='_'.join([app_name, self.extension, key]), default=default)
+            return self.backend.get(key='_'.join(['dwarf', key]), default=default)
+        return self.backend.get(key='_'.join(['dwarf', self.extension, key]), default=default)
 
     def set(self, key, value, timeout=None):
         """Sets a key in the cache.
@@ -54,8 +54,8 @@ class Cache:
         """
         
         if not self.extension:
-            return self.backend.set(key='_'.join([app_name, key]), value=value, timeout=timeout)
-        return self.backend.set(key='_'.join([app_name, self.extension, key]), value=value, timeout=timeout)
+            return self.backend.set(key='_'.join(['dwarf', key]), value=value, timeout=timeout)
+        return self.backend.set(key='_'.join(['dwarf', self.extension, key]), value=value, timeout=timeout)
 
     def get_many(self, keys):
         """Retrieves an iterable of keys' values from the cache.
@@ -71,10 +71,10 @@ class Cache:
         actual_keys = []
         if not self.extension:
             for key in keys:
-                actual_keys.append('_'.join([app_name, key]))
+                actual_keys.append('_'.join(['dwarf', key]))
         else:
             for key in keys:
-                actual_keys.append('_'.join([app_name, self.extension, key]))
+                actual_keys.append('_'.join(['dwarf', self.extension, key]))
         return list(self.backend.get_many(keys=actual_keys).values())
 
     def set_many(self, keys, values, timeout=None):
@@ -94,10 +94,10 @@ class Cache:
         actual_keys = []
         if not self.extension:
             for key in keys:
-                actual_keys.append('_'.join([app_name, key]))
+                actual_keys.append('_'.join(['dwarf', key]))
         else:
             for key in keys:
-                actual_keys.append('_'.join([app_name, self.extension, key]))
+                actual_keys.append('_'.join(['dwarf', self.extension, key]))
         return list(self.backend.set_many(data=dict(zip(actual_keys, values)), timeout=timeout).values())
 
     def delete(self, key):
@@ -110,8 +110,8 @@ class Cache:
         """
         
         if not self.extension:
-            return self.backend.get(key='_'.join([app_name, key]))
-        return self.backend.get(key='_'.join([app_name, self.extension, key]))
+            return self.backend.get(key='_'.join(['dwarf', key]))
+        return self.backend.get(key='_'.join(['dwarf', self.extension, key]))
 
 
 class _CoreAPI:
@@ -173,10 +173,11 @@ class _CoreAPI:
         returns them as a list of `str`s.
         """
         
-        return self.cache.get('extensions')
+        return self.cache.get('extensions', default=[])
 
     def get_dwarf_version(self):
         """Returns Dwarf's version."""
+        
         return version
 
 
