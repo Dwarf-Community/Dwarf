@@ -67,7 +67,7 @@ class _ManagementAPI:
         prefixes.append(prefix)
         self.set_prefixes(prefixes, bot=bot)
 
-    def remove_prefix(self, prefix, bot=bot):
+    def remove_prefix(self, prefix, bot=None):
         """Removes a prefix from the bot's prefixes.
         
         Parameters
