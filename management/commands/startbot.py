@@ -17,7 +17,7 @@ except discord.LoginFailure:
     bot.logger.error(traceback.format_exc())
     choice = input(strings.invalid_credentials)
     if choice.strip() == "reset":
-        InternalAPI.delete(key='token')
+        base.delete_token()
 except KeyboardInterrupt:
     loop.run_until_complete(bot.logout())
 except Exception as e:

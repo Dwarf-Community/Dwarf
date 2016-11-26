@@ -110,8 +110,8 @@ class CacheAPI:
         """
         
         if not self.extension:
-            return self.backend.get(key='_'.join(['dwarf', key]))
-        return self.backend.get(key='_'.join(['dwarf', self.extension, key]))
+            return self.backend.delete(key='_'.join(['dwarf', key]))
+        return self.backend.delete(key='_'.join(['dwarf', self.extension, key]))
 
 
 class BaseAPI:
@@ -143,6 +143,9 @@ class BaseAPI:
         """
         
         self.cache.set('token', token)
+    
+    def delete_token(self):
+        self.cache.delete('token')
 
     def install_extension(self, extension):
         """Installs an extension via the Dwarf Extension Index.

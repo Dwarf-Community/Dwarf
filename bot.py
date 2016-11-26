@@ -227,7 +227,7 @@ async def on_ready():
     print(strings.connected_to_servers.format(Guild.objects.count()))
     print(strings.connected_to_channels.format(Channel.objects.count()))
     print(strings.connected_to_users.format(get_user_model().objects.count()))
-    print("\n{} active cogs".format(base.get_number_of_extensions()))
+    print("\n{} active cogs".format(len(base.get_extensions())))
     prefix_label = strings.prefix_singular
     if len(core.get_prefixes()) > 1:
         prefix_label = strings.prefix_plural
