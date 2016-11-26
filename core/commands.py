@@ -2,10 +2,10 @@ import discord
 from discord.ext import commands
 
 from dwarf import permissions
-from dwarf.api import CoreAPI
+from dwarf.api import BaseAPI
 from dwarf.formatting import pagify
 from dwarf.bot import send_command_help
-from .api import ManagementAPI, PrefixAlreadyExists, PrefixNotFound
+from .api import CoreAPI, PrefixAlreadyExists, PrefixNotFound
 from . import strings
 
 import asyncio
@@ -17,8 +17,8 @@ import time
 
 log = logging.getLogger("dwarf.core")
 
+base = BaseAPI()
 core = CoreAPI()
-management = ManagementAPI()
 
 
 class Core:
@@ -58,7 +58,7 @@ class Core:
 
         result = python.format(result)
         if not ctx.message.channel.is_private:
-            censor = core.get_token()
+            censor = base.get_token()
             r = "[EXPUNGED]"
             for w in censor:
                 if w != "":
@@ -248,7 +248,7 @@ class Core:
         if len(token) < 50:
             await self.bot.say("Invalid token.")
         else:
-            core.set_token(token)
+            base.set_token(token)
             await self.bot.say("Token set. Restart me.")
             log.debug("Token changed.")
 
@@ -257,7 +257,7 @@ class Core:
     async def repo(self, ctx, repository):
         """Sets the bot's repository."""
         
-        management.set_repository(repository)
+        core.set_repository(repository)
         await self.bot.say("My repository is now located at:\n<" + repository + ">")
 
     @set.command(pass_context=True)
@@ -265,7 +265,7 @@ class Core:
     async def officialinvite(self, ctx, invite):
         """Sets the bot's official server's invite URL."""
         
-        management.set_official_invite(invite)
+        core.set_official_invite(invite)
         await self.bot.say("My official server invite is now:\n<" + invite + ">")
 
     @add.command(pass_context=True)
@@ -277,8 +277,8 @@ class Core:
             prefix = prefix[1:len(prefix)-1]
         
         try:
-            management.add_prefix(prefix)
-            self.bot.command_prefix = management.get_prefixes()
+            core.add_prefix(prefix)
+            self.bot.command_prefix = core.get_prefixes()
             await self.bot.say("The prefix '**" + prefix + "**' was added successfully.")
         except PrefixAlreadyExists:
             await self.bot.say("The prefix '**" + prefix + "**' could not be added as it is already a prefix.")
@@ -292,8 +292,8 @@ class Core:
             prefix = prefix[1:len(prefix)-1]
         
         try:
-            management.remove_prefix(prefix)
-            self.bot.command_prefix = management.get_prefixes()
+            core.remove_prefix(prefix)
+            self.bot.command_prefix = core.get_prefixes()
             await self.bot.say("The prefix '**" + prefix + "**' was removed successfully.")
         except PrefixNotFound:
             await self.bot.say("The prefix '**" + prefix + "**' could not be found.")
@@ -303,7 +303,7 @@ class Core:
     async def prefixes(self, ctx):
         """Shows the bot's prefixes"""
         
-        prefixes = management.get_prefixes()
+        prefixes = core.get_prefixes()
         if len(prefixes) > 1:
             await self.bot.say("My prefixes are: '**" + "**', '**".join(prefixes) + "**'")
         else:  
@@ -395,7 +395,7 @@ class Core:
         """Sends message to the owner"""
         # [p]contact <message>
 
-        owner_id = management.get_owner_id()
+        owner_id = core.get_owner_id()
         if owner_id is None:
             await self.bot.say("I have no owner set.")
             return
@@ -426,8 +426,8 @@ class Core:
         # [p]info
 
         await self.bot.say(strings.info.format(
-            management.get_repository(),
-            management.get_official_invite()))
+            core.get_repository(),
+            core.get_official_invite()))
 
     async def leave_confirmation(self, server, owner, ctx):
         if not ctx.message.channel.is_private:
@@ -452,7 +452,7 @@ class Core:
         """Shows the bot's current version"""
         # [p]version
 
-        await self.bot.say("Current version: " + core.get_dwarf_version())
+        await self.bot.say("Current version: " + base.get_dwarf_version())
 
 
 def setup(bot):

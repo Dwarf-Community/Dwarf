@@ -9,16 +9,16 @@ And they can make the bot fully ignore specific channels.
 
 
 from dwarf.models import User, Role, Channel
-from dwarf.core.api import ManagementAPI
+from dwarf.core.api import CoreAPI
 
 from discord.ext import commands
 
 
-management = ManagementAPI()
+core = CoreAPI()
 
 
 def is_owner_check(ctx):
-    return ctx.message.author.id == management.get_owner_id()
+    return ctx.message.author.id == core.get_owner_id()
 
 
 def owner():

@@ -1,7 +1,7 @@
 from django.contrib.auth import get_user_model
 import discord
 
-from dwarf.api import Cache
+from dwarf.api import CacheAPI
 from dwarf.models import Guild, Channel, Role, Member, Message
 
 
@@ -15,19 +15,19 @@ class PrefixAlreadyExists(Exception):
     pass
 
 
-class ManagementAPI:
+class CoreAPI:
     """Transforms Discord objects into Dwarf objects
     that are connected to the database backend.
     Also provides some basic management and settings functions.
     
     Attributes
     ----------
-    cache : :class:`Cache`
+    cache : :class:`CacheAPI`
         The cache backend connection of the API.
     """
 
     def __init__(self):
-        self.cache = Cache()
+        self.cache = CacheAPI()
 
     def get_prefixes(self):
         """Returns a list of the bot's prefixes."""

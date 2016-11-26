@@ -7,7 +7,7 @@ from .utils import set_digits
 redis = RedisCache('127.0.0.1:6379', {'PASSWORD': 'S3kr1t!', 'DB': 2})
 
 
-class Cache:
+class CacheAPI:
     """Represents a connection to the cache backend.
     This class is used to store keys into and retrieve keys
     from the cache.
@@ -114,7 +114,7 @@ class Cache:
         return self.backend.get(key='_'.join(['dwarf', self.extension, key]))
 
 
-class CoreAPI:
+class BaseAPI:
     """Internal API that makes data available that
     needs to be loaded before Django loads any models.
     It also makes rebooting available to the bot
@@ -122,12 +122,12 @@ class CoreAPI:
     
     Attributes
     ----------
-    cache : :class:`Cache`
+    cache : :class:`CacheAPI`
         The cache backend connection of the API.
     """
 
     def __init__(self):
-        self.cache = Cache()
+        self.cache = CacheAPI()
 
     def get_token(self):
         """Retrieves the bot's token."""

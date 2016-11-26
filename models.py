@@ -1,12 +1,12 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser
 
-from dwarf.api import CoreAPI
+from dwarf.api import BaseAPI
 
 import importlib
 
 
-core = CoreAPI()
+base = BaseAPI()
 
 
 class User(AbstractBaseUser):
@@ -71,6 +71,6 @@ class Log(models.Model):
 
 
 # importing models introduced by extensions
-extensions = core.get_extensions()
+extensions = base.get_extensions()
 for extension in extensions:
     importlib.import_module('dwarf.' + extension + '.models')

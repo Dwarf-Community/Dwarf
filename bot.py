@@ -5,19 +5,18 @@ from discord.ext import commands
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ObjectDoesNotExist
 
-from .api import Cache, CoreAPI
-from .core.api import ManagementAPI
+from .api import BaseAPI
+from .core.api import CoreAPI
 from .models import Guild, Channel
 from . import strings
 
 import sys
 import logging
 import logging.handlers
-import importlib
 
 
+base = BaseAPI()
 core = CoreAPI()
-management = ManagementAPI()
 
 def force_input(msg):
     entered_input = input(msg)
@@ -38,7 +37,7 @@ def get_answer():
 
 
 def is_configured():
-    if core.get_token() is None:
+    if base.get_token() is None:
         return False
     else:
         return True
@@ -50,7 +49,7 @@ def initial_config():
     entered_token = input("> ")
 
     if len(entered_token) >= 50:  # Assuming token
-        core.set_token(entered_token)
+        base.set_token(entered_token)
     else:
         print(strings.not_a_token)
         exit(1)
@@ -62,7 +61,7 @@ def initial_config():
         print(strings.confirm_prefix.format(new_prefix))
         confirmation = get_answer()
         if confirmation:
-            management.add_prefix(new_prefix)
+            core.add_prefix(new_prefix)
 
     print(strings.setup_finished)
     input("\n")
@@ -79,7 +78,7 @@ def _load_cogs(bot):
         raise ImportError("Could not find the Core cog.")
 
     failed = []
-    cogs = core.get_extensions()
+    cogs = base.get_extensions()
     for cog in cogs:
         try:
             load_cog(cog)
@@ -97,7 +96,7 @@ def _load_cogs(bot):
     return management_cog
 
 
-bot = commands.Bot(command_prefix=management.get_prefixes(), description=__doc__, pm_help=management.is_help_private())
+bot = commands.Bot(command_prefix=core.get_prefixes(), description=__doc__, pm_help=core.is_help_private())
 
 
 @bot.event
@@ -113,7 +112,7 @@ async def on_command(command, ctx):
 async def on_message(message):
     if user_allowed(message):
         try:
-            user = management.get_user(message.author.id)[0]
+            user = core.get_user(message.author.id)[0]
             user.message_count += 1
             user.save()
         except ObjectDoesNotExist:
@@ -164,7 +163,7 @@ def user_allowed(message):
     if message.author.bot:
         return False
 
-    if management.get_owner_id() == message.author.id:
+    if core.get_owner_id() == message.author.id:
         return True
 
     return True
@@ -181,7 +180,7 @@ async def get_oauth_url():
 async def set_bot_owner():
     try:
         data = await bot.application_info()
-        management.set_owner_id(data.owner.id)
+        core.set_owner_id(data.owner.id)
     except AttributeError:
         print(strings.update_the_api)
         return
@@ -199,7 +198,7 @@ def set_logger():
         datefmt="[%d/%m/%Y %H:%M]"))
     logger.addHandler(handler)
 
-    logger = logging.getLogger(core.get_app_name())
+    logger = logging.getLogger(base.get_app_name())
     logger.setLevel(logging.INFO)
 
     red_format = logging.Formatter(
@@ -219,7 +218,7 @@ def set_logger():
 
 @bot.event
 async def on_ready():
-    if management.get_owner_id() is None:
+    if core.get_owner_id() is None:
         await set_bot_owner()
     print('------')
     print(strings.bot_is_online.format(bot.user.name))
@@ -228,11 +227,11 @@ async def on_ready():
     print(strings.connected_to_servers.format(Guild.objects.count()))
     print(strings.connected_to_channels.format(Channel.objects.count()))
     print(strings.connected_to_users.format(get_user_model().objects.count()))
-    print("\n{} active cogs".format(core.get_number_of_extensions()))
+    print("\n{} active cogs".format(base.get_number_of_extensions()))
     prefix_label = strings.prefix_singular
-    if len(management.get_prefixes()) > 1:
+    if len(core.get_prefixes()) > 1:
         prefix_label = strings.prefix_plural
-    print("{}: {}\n".format(prefix_label, " ".join(list(management.get_prefixes()))))
+    print("{}: {}\n".format(prefix_label, " ".join(list(core.get_prefixes()))))
     print("------")
     print(strings.use_this_url)
     url = await get_oauth_url()
@@ -244,8 +243,8 @@ async def on_ready():
 def main():
     set_logger()
     _load_cogs(bot)
-    if management.get_prefixes():
-        bot.command_prefix = list(management.get_prefixes())
+    if core.get_prefixes():
+        bot.command_prefix = list(core.get_prefixes())
     else:
         print(strings.no_prefix_set)
         bot.command_prefix = ["!"]
@@ -255,7 +254,7 @@ def main():
     print(strings.official_server.format(strings.invite_link))
 
     try:
-        yield from bot.login(core.get_token())
+        yield from bot.login(base.get_token())
     except TypeError as e:
         print(e)
         sys.exit(strings.update_the_api)
