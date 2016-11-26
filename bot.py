@@ -199,7 +199,7 @@ def set_logger():
         datefmt="[%d/%m/%Y %H:%M]"))
     logger.addHandler(handler)
 
-    logger = logging.getLogger(CoreAPI.get_app_name())
+    logger = logging.getLogger('dwarf')
     logger.setLevel(logging.INFO)
 
     red_format = logging.Formatter(
@@ -228,7 +228,7 @@ async def on_ready():
     print(strings.connected_to_servers.format(Guild.objects.count()))
     print(strings.connected_to_channels.format(Channel.objects.count()))
     print(strings.connected_to_users.format(get_user_model().objects.count()))
-    print("\n{} active cogs".format(CoreAPI.get_number_of_extensions()))
+    print("\n{} active cogs".format(len(CoreAPI.get_extensions())))
     prefix_label = strings.prefix_singular
     if len(ManagementAPI.get_prefixes()) > 1:
         prefix_label = strings.prefix_plural
