@@ -16,6 +16,9 @@ import logging.handlers
 import importlib
 
 
+core = CoreAPI()
+management = ManagementAPI()
+
 def force_input(msg):
     entered_input = input(msg)
     if entered_input:
@@ -35,7 +38,7 @@ def get_answer():
 
 
 def is_configured():
-    if InternalAPI.get(key='token') is None:
+    if core.get_token() is None:
         return False
     else:
         return True
@@ -47,7 +50,7 @@ def initial_config():
     entered_token = input("> ")
 
     if len(entered_token) >= 50:  # Assuming token
-        InternalAPI.set(key='token', value=entered_token, timeout=None)
+        core.set_token(entered_token)
     else:
         print(strings.not_a_token)
         exit(1)
@@ -59,7 +62,7 @@ def initial_config():
         print(strings.confirm_prefix.format(new_prefix))
         confirmation = get_answer()
         if confirmation:
-            ManagementAPI.add_prefix(new_prefix)
+            management.add_prefix(new_prefix)
 
     print(strings.setup_finished)
     input("\n")
@@ -76,7 +79,7 @@ def _load_cogs(bot):
         raise ImportError("Could not find the Core cog.")
 
     failed = []
-    cogs = CoreAPI.get_extensions()
+    cogs = core.get_extensions()
     for cog in cogs:
         try:
             load_cog(cog)
@@ -94,10 +97,7 @@ def _load_cogs(bot):
     return management_cog
 
 
-InternalAPI = Cache()
-
-bot = commands.Bot(command_prefix=list(ManagementAPI.get_prefixes()), formatter=None,
-                   description=__doc__, pm_help=None)
+bot = commands.Bot(command_prefix=management.get_prefixes(), description=__doc__, pm_help=management.is_help_private())
 
 
 @bot.event
@@ -113,7 +113,7 @@ async def on_command(command, ctx):
 async def on_message(message):
     if user_allowed(message):
         try:
-            user = ManagementAPI.get_user(message.author.id)[0]
+            user = management.get_user(message.author.id)[0]
             user.message_count += 1
             user.save()
         except ObjectDoesNotExist:
@@ -164,7 +164,7 @@ def user_allowed(message):
     if message.author.bot:
         return False
 
-    if ManagementAPI.get_owner_id() == message.author.id:
+    if management.get_owner_id() == message.author.id:
         return True
 
     return True
@@ -181,7 +181,7 @@ async def get_oauth_url():
 async def set_bot_owner():
     try:
         data = await bot.application_info()
-        ManagementAPI.set_owner_id(data.owner.id)
+        management.set_owner_id(data.owner.id)
     except AttributeError:
         print(strings.update_the_api)
         return
@@ -199,7 +199,7 @@ def set_logger():
         datefmt="[%d/%m/%Y %H:%M]"))
     logger.addHandler(handler)
 
-    logger = logging.getLogger('dwarf')
+    logger = logging.getLogger(core.get_app_name())
     logger.setLevel(logging.INFO)
 
     red_format = logging.Formatter(
@@ -219,7 +219,7 @@ def set_logger():
 
 @bot.event
 async def on_ready():
-    if ManagementAPI.get_owner_id() is None:
+    if management.get_owner_id() is None:
         await set_bot_owner()
     print('------')
     print(strings.bot_is_online.format(bot.user.name))
@@ -228,11 +228,11 @@ async def on_ready():
     print(strings.connected_to_servers.format(Guild.objects.count()))
     print(strings.connected_to_channels.format(Channel.objects.count()))
     print(strings.connected_to_users.format(get_user_model().objects.count()))
-    print("\n{} active cogs".format(len(CoreAPI.get_extensions())))
+    print("\n{} active cogs".format(core.get_number_of_extensions()))
     prefix_label = strings.prefix_singular
-    if len(ManagementAPI.get_prefixes()) > 1:
+    if len(management.get_prefixes()) > 1:
         prefix_label = strings.prefix_plural
-    print("{}: {}\n".format(prefix_label, " ".join(list(ManagementAPI.get_prefixes()))))
+    print("{}: {}\n".format(prefix_label, " ".join(list(management.get_prefixes()))))
     print("------")
     print(strings.use_this_url)
     url = await get_oauth_url()
@@ -244,18 +244,18 @@ async def on_ready():
 def main():
     set_logger()
     _load_cogs(bot)
-    if ManagementAPI.get_prefixes():
-        bot.command_prefix = list(ManagementAPI.get_prefixes())
+    if management.get_prefixes():
+        bot.command_prefix = list(management.get_prefixes())
     else:
         print(strings.no_prefix_set)
         bot.command_prefix = ["!"]
 
     print(strings.logging_into_discord)
     print(strings.keep_updated)
-    print(strings.official_server.format(InternalAPI.get(key='invite_link', default='')))
+    print(strings.official_server.format(strings.invite_link))
 
     try:
-        yield from bot.login(InternalAPI.get(key='token'))
+        yield from bot.login(core.get_token())
     except TypeError as e:
         print(e)
         sys.exit(strings.update_the_api)

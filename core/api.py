@@ -3,7 +3,6 @@ import discord
 
 from dwarf.api import Cache
 from dwarf.models import Guild, Channel, Role, Member, Message
-from dwarf.utils import set_digits
 
 
 class PrefixNotFound(Exception):
@@ -16,7 +15,7 @@ class PrefixAlreadyExists(Exception):
     pass
 
 
-class _ManagementAPI:
+class ManagementAPI:
     """Transforms Discord objects into Dwarf objects
     that are connected to the database backend.
     Also provides some basic management and settings functions.
@@ -33,7 +32,7 @@ class _ManagementAPI:
     def get_prefixes(self):
         """Returns a list of the bot's prefixes."""
         
-        return self.cache.get(key='prefixes')
+        return self.cache.get('prefixes')
 
     def set_prefixes(self, prefixes, bot=None):
         """Sets the bot's prefixes.
@@ -83,10 +82,36 @@ class _ManagementAPI:
         self.set_prefixes(prefixes, bot=bot)
 
     def get_owner_id(self):
-        return self.cache.get(key='owner')
+        return self.cache.get('owner')
 
     def set_owner_id(self, user_id):
-        self.cache.set(key='owner', value=user_id, timeout=None)
+        self.cache.set('owner', user_id)
+
+    def is_help_private(self):
+        """Retrieves whether or not to send help messages privately."""
+
+        return self.cache.get('pm_help', default=False)
+
+    def set_help_private(self, boolean):
+        """Sets whether or not to send help messages privately.
+
+        Parameters
+        ----------
+        boolean : bool
+            If True, help messages should be sent via PM.
+            If False, help messages should be sent to where the help command was issued.
+        """
+
+        self.cache.set('pm_help', boolean)
+
+    def toggle_help_private(self):
+        """A helper function that toggles whether or not to send help messages privately."""
+
+        current_status = self.is_help_private()
+        if current_status is True:
+            self.set_help_private(False)
+        else:
+            self.set_help_private(True)
 
     def get_repository(self):
         """Retrieves Dwarf's official repository's URL."""
@@ -343,6 +368,3 @@ class _ManagementAPI:
                            content=message.content, clean_content=message.clean_content,)
         else:
             raise ValueError("A Message object must be given as an argument")
-
-
-ManagementAPI = _ManagementAPI()

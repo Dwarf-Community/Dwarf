@@ -6,6 +6,9 @@ from dwarf.api import CoreAPI
 import importlib
 
 
+core = CoreAPI()
+
+
 class User(AbstractBaseUser):
     id = models.BigIntegerField(primary_key=True)
     is_admin = models.BooleanField(default=False, db_index=True)
@@ -68,6 +71,6 @@ class Log(models.Model):
 
 
 # importing models introduced by extensions
-extensions = CoreAPI.get_extensions()
+extensions = core.get_extensions()
 for extension in extensions:
     importlib.import_module('dwarf.' + extension + '.models')

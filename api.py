@@ -114,7 +114,7 @@ class Cache:
         return self.backend.get(key='_'.join(['dwarf', self.extension, key]))
 
 
-class _CoreAPI:
+class CoreAPI:
     """Internal API that makes data available that
     needs to be loaded before Django loads any models.
     It also makes rebooting available to the bot
@@ -180,5 +180,3 @@ class _CoreAPI:
         
         return version
 
-
-CoreAPI = _CoreAPI()
