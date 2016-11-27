@@ -2,4 +2,4 @@
 a Discord bot which you can run using python manage.py startbot"""
 
 
-version = "0.8.3b"
+version = "0.8.4b"
