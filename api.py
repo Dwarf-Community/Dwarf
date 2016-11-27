@@ -131,7 +131,7 @@ class BaseAPI:
 
     def get_token(self):
         """Retrieves the bot's token."""
-        self.cache.get('token')
+        return self.cache.get('token')
 
     def set_token(self, token):
         """Sets the bot's token.

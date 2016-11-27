@@ -54,14 +54,14 @@ def initial_config():
         print(strings.not_a_token)
         exit(1)
 
-    print(strings.choose_prefix)
     confirmation = False
-    while confirmation is False:
+    while not confirmation:
+        print(strings.choose_prefix)
         new_prefix = force_input("\n> ").strip()
         print(strings.confirm_prefix.format(new_prefix))
-        confirmation = get_answer()
-        if confirmation:
+        if input("> ") in ['y', 'yes']:
             core.add_prefix(new_prefix)
+            confirmation = True
 
     print(strings.setup_finished)
     input("\n")
@@ -198,7 +198,7 @@ def set_logger():
         datefmt="[%d/%m/%Y %H:%M]"))
     logger.addHandler(handler)
 
-    logger = logging.getLogger(base.get_app_name())
+    logger = logging.getLogger('dwarf')
     logger.setLevel(logging.INFO)
 
     red_format = logging.Formatter(
