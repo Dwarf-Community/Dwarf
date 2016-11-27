@@ -184,11 +184,12 @@ class BaseAPI:
         return version
 
     def _set_extensions(self, extensions):
-        """Sets the names of the installed extensions
+        """Sets the list of the installed extensions.
         
         Parameters
         ----------
         extensions : iter of str
-            The names of the all the extensions to install
+            The names of the extensions to set as installed.
         """
-        self.cache.set('extensions', extensions);
+        
+        self.cache.set('extensions', extensions)
