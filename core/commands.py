@@ -301,7 +301,7 @@ class Core:
     @get.command(pass_context=True)
     @permissions.owner()
     async def prefixes(self, ctx):
-        """Shows the bot's prefixes"""
+        """Shows the bot's prefixes."""
         
         prefixes = core.get_prefixes()
         if len(prefixes) > 1:
@@ -346,7 +346,7 @@ class Core:
     @commands.command(pass_context=True, no_pm=True)
     @permissions.owner()
     async def leave(self, ctx):
-        """Leaves server"""
+        """Makes the bot leave the current server."""
         # [p]leave
 
         message = ctx.message
@@ -366,7 +366,7 @@ class Core:
     @commands.command(pass_context=True)
     @permissions.owner()
     async def servers(self, ctx):
-        """Lists and allows to leave servers"""
+        """Lists and allows to leave servers."""
         # [p]servers
 
         owner = ctx.message.author
@@ -392,7 +392,7 @@ class Core:
 
     @commands.command(pass_context=True)
     async def contact(self, ctx, *, message : str):
-        """Sends message to the owner"""
+        """Sends message to the owner of the bot."""
         # [p]contact <message>
 
         owner_id = core.get_owner_id()
@@ -421,8 +421,8 @@ class Core:
             await self.bot.say("Your message has been sent.")
 
     @commands.command()
-    async def info(self):
-        """Shows info about the bot"""
+    async def about(self):
+        """Shows information about the bot."""
         # [p]info
 
         await self.bot.say(strings.info.format(
