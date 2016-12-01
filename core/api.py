@@ -32,7 +32,7 @@ class CoreAPI:
     def get_prefixes(self):
         """Returns a list of the bot's prefixes."""
         
-        return self.cache.get('prefixes')
+        return self.cache.get('prefixes', default=[])
 
     def set_prefixes(self, prefixes, bot=None):
         """Sets the bot's prefixes.
