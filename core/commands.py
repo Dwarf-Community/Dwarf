@@ -80,7 +80,7 @@ class Core:
         except ExtensionNotInIndex:
             self.bot.say("There is no extension called '**" + extension + "**'.")
 
-     @commands.command(pass_context=True)
+    @commands.command(pass_context=True)
     async def uninstall(self, ctx, extension):
         self.bot.say("Uninstalling '**" + extension + "**'...")
         try:
