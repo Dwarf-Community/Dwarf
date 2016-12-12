@@ -174,7 +174,7 @@ class BaseAPI:
             raise ExtensionAlreadyInstalled(extension)
         
         try:
-            subprocess.run(['git', 'clone', dwarf.extensions.index[extension][repository], 'dwarf/' + extension])
+            subprocess.run(['git', 'clone', dwarf.extensions.index[extension]['repository'], 'dwarf/' + extension])
         except KeyError:
             raise ExtensionNotInIndex(extension)
         
