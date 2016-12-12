@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 
 from dwarf import permissions
-from dwarf.api import BaseAPI
+from dwarf.api import BaseAPI, ExtensionAlreadyInstalled, ExtensionNotFound, ExtensionNotInIndex
 from dwarf.formatting import pagify
 from dwarf.bot import send_command_help
 from .api import CoreAPI, PrefixAlreadyExists, PrefixNotFound
@@ -66,6 +66,29 @@ class Core:
                     result = result.replace(w.lower(), r)
                     result = result.replace(w.upper(), r)
         await self.bot.say(result)
+
+    @commands.command(pass_context=True)
+    async def install(self, ctx, extension):
+        self.bot.say("Installing '**" + extension + "**'...")
+        try:
+            self.bot.type()
+            base.install_extension(extension)
+            self.bot.say("Installation finished, new extension '**" + extension
+                         + "**' will be available after reboot.")
+        except ExtensionAlreadyInstalled:
+            self.bot.say("The extension '**" + extension + "**' is already installed.")
+        except ExtensionNotInIndex:
+            self.bot.say("There is no extension called '**" + extension + "**'.")
+
+     @commands.command(pass_context=True)
+    async def uninstall(self, ctx, extension):
+        self.bot.say("Uninstalling '**" + extension + "**'...")
+        try:
+            self.bot.type()
+            base.uninstall_extension(extension)
+            self.bot.say("Uninstallation finished, changes will be visible after reboot.")
+        except ExtensionNotFound:
+            self.bot.say("The extension '**" + extension + "**' is not installed.")
 
     @commands.group(name="set", pass_context=True)
     async def set(self, ctx):

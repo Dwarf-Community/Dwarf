@@ -3,8 +3,21 @@ from redis_cache import RedisCache
 from . import version
 from .utils import set_digits
 
+import subprocess
+import shutil
+
 
 redis = RedisCache('127.0.0.1:6379', {'PASSWORD': 'S3kr1t!', 'DB': 2})
+
+
+class ExtensionAlreadyInstalled(Exception):
+    pass
+
+class ExtensionNotInIndex(Exception):
+    pass
+
+class ExtensionNotFound(Exception):
+    pass
 
 
 class CacheAPI:
@@ -143,7 +156,7 @@ class BaseAPI:
         """
         
         self.cache.set('token', token)
-    
+
     def delete_token(self):
         self.cache.delete('token')
 
@@ -156,9 +169,19 @@ class BaseAPI:
             The name of the extension that should be installed.
         """
         
-        # TODO
+        extensions = self.get_extensions()
+        if extension in extensions:
+            raise ExtensionAlreadyInstalled(extension)
+        
+        try:
+            subprocess.run(['git', 'clone', [dwarf.extensions.index[extension][repository], 'dwarf/' + extension])
+        except KeyError:
+            raise ExtensionNotInIndex(extension)
+        
+        extensions.append(extension)
+        self._set_extensions(extensions)
 
-    def _uninstall_extension(self, extension):
+    def uninstall_extension(self, extension):
         """Uninstalls an installed extension.
         Throws :exception:`ExtensionNotFound`
         if the extension is not installed.
@@ -169,7 +192,14 @@ class BaseAPI:
             The name of the extension that should be installed.
         """
         
-        # TODO
+        extensions = self.get_extensions()
+        if extension not in extensions:
+            raise ExtensionNotFound(extension)
+        
+        shutil.rmtree('dwarf/' + extension)
+        
+        extensions.remove(extension)
+        self.set_extensions(extensions)
 
     def get_extensions(self):
         """Retrieves the names of all installed extensions and
@@ -178,12 +208,7 @@ class BaseAPI:
         
         return self.cache.get('extensions', default=[])
 
-    def get_dwarf_version(self):
-        """Returns Dwarf's version."""
-        
-        return version
-
-    def _set_extensions(self, extensions):
+    def set_extensions(self, extensions):
         """Sets the list of the installed extensions.
         
         Parameters
@@ -193,3 +218,9 @@ class BaseAPI:
         """
         
         self.cache.set('extensions', extensions)
+   
+    @staticmethod
+    def get_dwarf_version():
+        """Returns Dwarf's version."""
+        
+        return version
