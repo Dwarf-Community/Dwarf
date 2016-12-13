@@ -3,8 +3,7 @@ from redis_cache import RedisCache
 from . import version
 from .utils import set_digits
 
-import subprocess
-import shutil
+import subprocess, shutil, os, stat
 
 
 redis = RedisCache('127.0.0.1:6379', {'PASSWORD': 'S3kr1t!', 'DB': 2})
@@ -192,11 +191,19 @@ class BaseAPI:
             The name of the extension that should be installed.
         """
         
+        def onerror(func, path, exc_info):
+            """`shutil.rmtree` error handler that helps deleting read-only files on Windows."""
+            if not os.access(path, os.W_OK):
+                os.chmod(path, stat.S_IWUSR)
+                func(path)
+            else:
+                raise
+        
         extensions = self.get_extensions()
         if extension not in extensions:
             raise ExtensionNotFound(extension)
         
-        shutil.rmtree('dwarf/' + extension)
+        shutil.rmtree('dwarf/' + extension, onerror=onerror)
         
         extensions.remove(extension)
         self.set_extensions(extensions)
