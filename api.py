@@ -127,10 +127,9 @@ class CacheAPI:
 
 
 class BaseAPI:
-    """Internal API that makes data available that
+    """Internal API that manages extensions and makes data available that
     needs to be loaded before Django loads any models.
-    It also makes rebooting available to the bot
-    and the web interface.
+    It also makes rebooting available to the bot and the web interface.
     
     Attributes
     ----------
