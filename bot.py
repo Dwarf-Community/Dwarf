@@ -157,7 +157,7 @@ def subcommand(command_group, cog='core', bot=dwarf.bot.bot):
         The name of the cog the command group belongs to. Defaults to 'core'.
     """
     
-    def command_as_subcommand(command)
+    def command_as_subcommand(command):
         cog_obj = bot.get_cog(cog)
         getattr(cog_obj, command_group).add_command(command)
         return command
