@@ -1,5 +1,7 @@
 from django.core.management import call_command
 from redis_cache import RedisCache
+
+import dwarf.extensions
 from . import version
 
 import subprocess, shutil, os, stat
