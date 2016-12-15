@@ -127,6 +127,20 @@ def _load_cogs(bot):
     return management_cog
 
 
+def user_allowed(message):
+
+    # bots are not allowed to interact with other bots
+    if message.author.bot:
+        return False
+
+    if core.get_owner_id() == message.author.id:
+        return True
+    
+    # TODO
+
+    return True
+
+
 @bot.event
 async def on_command(command, ctx):
     author = ctx.message.author
@@ -139,12 +153,10 @@ async def on_command(command, ctx):
 @bot.event
 async def on_message(message):
     if user_allowed(message):
-        try:
-            user = core.get_user(message.author.id)[0]
-            user.message_count += 1
-            user.save()
-        except ObjectDoesNotExist:
-            pass
+        if core.user_is_registered(message.author):
+            member = core.get_member(message.author)
+            member.message_count += 1
+            member.save()
         await bot.process_commands(message)
 
 
@@ -204,18 +216,6 @@ async def send_command_help(ctx):
         pages = bot.formatter.format_help_for(ctx, ctx.command)
         for page in pages:
             await bot.send_message(ctx.message.channel, page)
-
-
-def user_allowed(message):
-
-    # bots are not allowed to interact with other bots
-    if message.author.bot:
-        return False
-
-    if core.get_owner_id() == message.author.id:
-        return True
-
-    return True
 
 
 async def get_oauth_url():
