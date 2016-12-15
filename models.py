@@ -70,10 +70,12 @@ class Log(models.Model):
     message = models.CharField(max_length=2048)
 
 
-# importing models introduced by extensions
+# Importing models introduced by extensions.
+# Kinda hacky but there seems to be no clean way to do this.
 extensions = base.get_extensions()
 for extension in extensions:
     try:
-        importlib.import_module('dwarf.' + extension + '.models')
+        models_module = importlib.import_module('dwarf.' + extension + '.models')
+        globals().update(models_module.__dict__)
     except ImportError:
         pass
