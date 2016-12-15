@@ -146,7 +146,7 @@ async def on_command_error(error, ctx):
         logger.exception(type(error).__name__, exc_info=error)
 
 
-def subcommand(command_group, cog='core', bot=dwarf.bot.bot):
+def subcommand(command_group, cog='core', _bot=bot):
     """A decorator that adds a command to a command group.
     
     Parameters
@@ -158,7 +158,7 @@ def subcommand(command_group, cog='core', bot=dwarf.bot.bot):
     """
     
     def command_as_subcommand(command):
-        cog_obj = bot.get_cog(cog)
+        cog_obj = _bot.get_cog(cog)
         getattr(cog_obj, command_group).add_command(command)
         return command
     
