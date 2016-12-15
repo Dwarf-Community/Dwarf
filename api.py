@@ -182,7 +182,7 @@ class BaseAPI:
         call_command('migrate', 'dwarf')
         
         extensions.append(extension)
-        self._set_extensions(extensions)
+        self.set_extensions(extensions)
 
     def uninstall_extension(self, extension):
         """Uninstalls an installed extension.
