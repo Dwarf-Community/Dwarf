@@ -8,7 +8,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from .api import BaseAPI
 from .core.api import CoreAPI
 from .models import Guild, Channel
-from . import strings, logging
+from . import strings
 
 import sys
 import logging
