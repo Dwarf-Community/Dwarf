@@ -177,6 +177,10 @@ class BaseAPI:
         except KeyError:
             raise ExtensionNotInIndex(extension)
         
+        # migrate database changes
+        call_command('makemigrations', 'dwarf')
+        call_command('migrate', 'dwarf')
+        
         extensions.append(extension)
         self._set_extensions(extensions)
 
