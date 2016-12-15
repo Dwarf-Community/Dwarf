@@ -75,7 +75,13 @@ class Log(models.Model):
 extensions = base.get_extensions()
 for extension in extensions:
     try:
+        # mimic `from dwarf.extension.models import *`
         models_module = importlib.import_module('dwarf.' + extension + '.models')
-        globals().update(models_module.__dict__)
+        module_dict = models_module.__dict__
+        try:
+            to_import = models_module.__all__
+        except AttributeError:
+            to_import = [name for name in module_dict if not name.startswith('_')]
+        globals().update({name: module_dict[name] for name in to_import})
     except ImportError:
         pass
