@@ -73,4 +73,7 @@ class Log(models.Model):
 # importing models introduced by extensions
 extensions = base.get_extensions()
 for extension in extensions:
-    importlib.import_module('dwarf.' + extension + '.models')
+    try:
+        importlib.import_module('dwarf.' + extension + '.models')
+    except ImportError:
+        pass
