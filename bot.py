@@ -8,7 +8,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from .api import BaseAPI
 from .core.api import CoreAPI
 from .models import Guild, Channel
-from . import strings
+from . import strings, logging
 
 import sys
 import logging
@@ -67,6 +67,37 @@ def initial_config():
     input("\n")
 
 
+def set_logger():
+    global logger
+    logger = logging.getLogger("discord")
+    logger.setLevel(logging.WARNING)
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setFormatter(logging.Formatter(
+        '%(asctime)s %(levelname)s %(module)s %(funcName)s %(lineno)d: '
+        '%(message)s',
+        datefmt="[%d/%m/%Y %H:%M]"))
+    logger.addHandler(handler)
+
+    logger = logging.getLogger('dwarf')
+    logger.setLevel(logging.INFO)
+
+    red_format = logging.Formatter(
+        '%(asctime)s %(levelname)s %(module)s %(funcName)s %(lineno)d: '
+        '%(message)s',
+        datefmt="[%d/%m/%Y %H:%M]")
+
+    stdout_handler = logging.StreamHandler(sys.stdout)
+    stdout_handler.setFormatter(red_format)
+    stdout_handler.setLevel(logging.INFO)
+
+    logger.addHandler(stdout_handler)
+
+
+set_logger()
+
+bot = commands.Bot(command_prefix=core.get_prefixes(), description=__doc__, pm_help=core.is_help_private())
+
+
 def _load_cogs(bot):
     def load_cog(cogname):
         bot.load_extension('dwarf.' + cogname + '.commands')
@@ -84,7 +115,7 @@ def _load_cogs(bot):
             load_cog(cog)
         except Exception as e:
             print("{}: {}".format(e.__class__.__name__, str(e)))
-            bot.logger.exception(e)
+            logger.exception(e)
             failed.append(cog)
 
     if failed:
@@ -94,9 +125,6 @@ def _load_cogs(bot):
         print("\n")
 
     return management_cog
-
-
-bot = commands.Bot(command_prefix=core.get_prefixes(), description=__doc__, pm_help=core.is_help_private())
 
 
 @bot.event
@@ -206,32 +234,6 @@ async def set_bot_owner():
     print(strings.owner_recognized.format(data.owner.name))
 
 
-def set_logger():
-    global logger
-    logger = logging.getLogger("discord")
-    logger.setLevel(logging.WARNING)
-    handler = logging.StreamHandler(sys.stdout)
-    handler.setFormatter(logging.Formatter(
-        '%(asctime)s %(levelname)s %(module)s %(funcName)s %(lineno)d: '
-        '%(message)s',
-        datefmt="[%d/%m/%Y %H:%M]"))
-    logger.addHandler(handler)
-
-    logger = logging.getLogger('dwarf')
-    logger.setLevel(logging.INFO)
-
-    red_format = logging.Formatter(
-        '%(asctime)s %(levelname)s %(module)s %(funcName)s %(lineno)d: '
-        '%(message)s',
-        datefmt="[%d/%m/%Y %H:%M]")
-
-    stdout_handler = logging.StreamHandler(sys.stdout)
-    stdout_handler.setFormatter(red_format)
-    stdout_handler.setLevel(logging.INFO)
-
-    logger.addHandler(stdout_handler)
-
-
 @bot.event
 async def on_ready():
     if core.get_owner_id() is None:
@@ -257,7 +259,6 @@ async def on_ready():
 
 
 def main():
-    set_logger()
     _load_cogs(bot)
     if core.get_prefixes():
         bot.command_prefix = list(core.get_prefixes())
