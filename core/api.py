@@ -1,6 +1,7 @@
 from django.contrib.auth import get_user_model
 import discord
 
+import dwarf.extensions
 from dwarf.api import CacheAPI
 from dwarf.models import Guild, Channel, Role, Member, Message
 
