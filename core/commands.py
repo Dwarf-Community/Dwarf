@@ -56,7 +56,7 @@ class Core:
         if asyncio.iscoroutine(result):
             result = await result
 
-        result = f.box(result, 'py')
+        result = f.block(result, 'py')
         if not ctx.message.channel.is_private:
             censor = base.get_token()
             r = "[EXPUNGED]"
