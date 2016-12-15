@@ -1,6 +1,11 @@
 from dwarf.bot import *
 import asyncio
+# import uvloop
 import traceback
+
+
+# asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+# TODO make Dwarf compatible with uvloop
 
 
 if not is_configured():

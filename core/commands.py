@@ -3,7 +3,7 @@ from discord.ext import commands
 
 from dwarf import permissions
 from dwarf.api import BaseAPI, ExtensionAlreadyInstalled, ExtensionNotFound, ExtensionNotInIndex
-from dwarf.formatting import pagify
+from dwarf import formatting as f
 from dwarf.bot import send_command_help
 from .api import CoreAPI, PrefixAlreadyExists, PrefixNotFound
 from . import strings
@@ -22,13 +22,13 @@ core = CoreAPI()
 
 
 class Core:
-    """All owner-only commands that relate to bot management operations."""
+    """All commands that relate to management operations."""
 
     def __init__(self, bot):
         self.bot = bot
         self.session = aiohttp.ClientSession(loop=self.bot.loop)
 
-    @commands.command(pass_context=True, hidden=True)
+    @commands.command(name='eval', pass_context=True, hidden=True)
     @permissions.owner()
     async def evaluate(self, ctx, *, code):
         """Evaluates code.
@@ -56,7 +56,7 @@ class Core:
         if asyncio.iscoroutine(result):
             result = await result
 
-        result = python.format(result)
+        result = f.box(result, 'py')
         if not ctx.message.channel.is_private:
             censor = base.get_token()
             r = "[EXPUNGED]"
@@ -68,7 +68,7 @@ class Core:
         await self.bot.say(result)
 
     @commands.command(pass_context=True)
-    async def install(self, ctx, extension):
+    async def install(self, ctx, *, extension):
         self.bot.say("Installing '**" + extension + "**'...")
         try:
             self.bot.type()
@@ -81,7 +81,7 @@ class Core:
             self.bot.say("There is no extension called '**" + extension + "**'.")
 
     @commands.command(pass_context=True)
-    async def uninstall(self, ctx, extension):
+    async def uninstall(self, ctx, *, extension):
         self.bot.say("Uninstalling '**" + extension + "**'...")
         try:
             self.bot.type()
@@ -400,7 +400,7 @@ class Core:
             server_list[str(i)] = servers[i]
             msg += "{}: {}\n".format(str(i), servers[i].name)
         msg += "\nTo leave a server just type its number."
-        for page in pagify(msg, ['\n']):
+        for page in f.pagify(msg, ['\n']):
             await self.bot.say(page)
         while msg is not None:
             msg = await self.bot.wait_for_message(author=owner, timeout=15)

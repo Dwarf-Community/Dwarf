@@ -1,34 +1,39 @@
-"""Storing the various ways to format text on Discord at one place"""
+"""Storing the various ways to format text on Discord at one place."""
 
 
 def italics(text):
     return "*{}*".format(text)
 
+i = italics
 
 def bold(text):
     return "**{}**".format(text)
 
+b = bold
 
 def bold_italics(text):
     return "***{}***".format(text)
 
+bi = bold_italics
 
 def underline(text):
     return "__{}__".format(text)
 
+u = underline
 
 def strikethrough(text):
     return "~~{}~~".format(text)
 
+s = strikethrough
 
-def inline(text):
+def inline_code(text):
     return "`{}`".format(text)
 
+c = inline_code
 
-def box(text, lang=""):
+def block(text, lang=""):
     text = "```{}\n{}\n```".format(lang, text)
     return text
-
 
 def pagify(text, delims=[], do_escape=True, shorten_by=8, page_length=2000):
     # DOES NOT RESPECT MARKDOWN BOXES OR INLINE CODE
@@ -48,7 +53,6 @@ def pagify(text, delims=[], do_escape=True, shorten_by=8, page_length=2000):
         yield escape(in_text, mass_mentions=True)
     else:
         yield in_text
-
 
 def escape(text, *, mass_mentions=False, formatting=False):
     if mass_mentions:

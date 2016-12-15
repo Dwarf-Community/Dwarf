@@ -146,6 +146,25 @@ async def on_command_error(error, ctx):
         logger.exception(type(error).__name__, exc_info=error)
 
 
+def subcommand(command_group, cog='core', bot=dwarf.bot.bot):
+    """A decorator that adds a command to a command group.
+    
+    Parameters
+    ----------
+    command_group : str
+        The name of the command group to add the decorated command to.
+    cog : str
+        The name of the cog the command group belongs to. Defaults to 'core'.
+    """
+    
+    def command_as_subcommand(command)
+        cog_obj = bot.get_cog(cog)
+        getattr(cog_obj, command_group).add_command(command)
+        return command
+    
+    return command_as_subcommand
+
+
 async def send_command_help(ctx):
     if ctx.invoked_subcommand:
         pages = bot.formatter.format_help_for(ctx, ctx.invoked_subcommand)
@@ -211,9 +230,6 @@ def set_logger():
     stdout_handler.setLevel(logging.INFO)
 
     logger.addHandler(stdout_handler)
-
-
-# TODO Module system
 
 
 @bot.event
