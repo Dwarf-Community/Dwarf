@@ -174,7 +174,7 @@ async def on_command_error(error, ctx):
         logger.exception(type(error).__name__, exc_info=error)
 
 
-def subcommand(command_group, cog='core', _bot=bot):
+def subcommand(command_group, cog='Core', _bot=bot):
     """A decorator that adds a command to a command group.
     
     Parameters
@@ -182,7 +182,9 @@ def subcommand(command_group, cog='core', _bot=bot):
     command_group : str
         The name of the command group to add the decorated command to.
     cog : str
-        The name of the cog the command group belongs to. Defaults to 'core'.
+        The name of the cog the command group belongs to. Defaults to 'Core'.
+        Note that a cog is the class you define in a commands module,
+        thus it starts with a capital letter.
     """
     
     def command_as_subcommand(command):
