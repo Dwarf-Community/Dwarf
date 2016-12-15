@@ -1,7 +1,6 @@
 from django.core.management import call_command
 from redis_cache import RedisCache
 from . import version
-from .utils import set_digits
 
 import subprocess, shutil, os, stat
 
