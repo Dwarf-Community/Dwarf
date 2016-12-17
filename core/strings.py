@@ -1,12 +1,12 @@
 """Externalized strings for better structure and easier localization"""
 
 
-info = "This is an instance of Dwarf, the "
-       "Discord Web Application Framework created by AileenLumina.\n"
-       "**Repository:**\n"
-       "<{}>\n"
-       "**Official server:**\n"
-       "<{}>"
+info = str("This is an instance of Dwarf, the "
+           "Discord Web Application Framework created by AileenLumina.\n"
+           "**Repository:**\n"
+           "<{}>\n"
+           "**Official server:**\n"
+           "<{}>")
 
 failed_to_install = "Failed to install '**{}**'."
 
@@ -16,8 +16,8 @@ unsatisfied_dependencies = "Missing required extensions:"
 
 prompt_install_requirements = "Do you want to install the missing required packages?"
 
-would_be_uninstalled_too = "Extensions that would be uninstalled as well "
-                           "as they depend on '**{}**':"
+would_be_uninstalled_too = str("Extensions that would be uninstalled as well "
+                               "as they depend on '**{}**':")
 
-proceed_with_uninstallation = "Do you want to proceed? This will uninstall "
-                              "the above listed extensions. (yes/no)"
+proceed_with_uninstallation = str("Do you want to proceed? This will uninstall "
+                                  "the above listed extensions. (yes/no)")

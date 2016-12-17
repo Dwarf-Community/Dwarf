@@ -5,7 +5,7 @@ from dwarf import permissions
 from dwarf import formatting as f
 from dwarf.api import BaseAPI, ExtensionAlreadyInstalled, ExtensionNotFound, ExtensionNotInIndex
 from dwarf.bot import send_command_help
-from dwarf.utils import answer_to_boolean, is_boolean_message
+from dwarf.utils import answer_to_boolean, is_boolean_answer
 from .api import CoreAPI, PrefixAlreadyExists, PrefixNotFound
 from . import strings
 
@@ -71,7 +71,7 @@ class Core:
     @commands.command(pass_context=True)
     async def install(self, ctx, *, extension):
         """Installs an extension."""
-        async def _install(extension)
+        async def _install(extension):
             await self.bot.say("Installing '**" + extension + "**'...")
             await self.bot.type()
             try:
