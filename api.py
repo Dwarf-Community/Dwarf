@@ -1,10 +1,10 @@
-from django.core.management import call_command
+from django.core import management
 from redis_cache import RedisCache
 
 import dwarf.extensions
 from . import version
 
-import subprocess, shutil, os, stat
+import subprocess, shutil, os, stat, importlib, pip
 
 
 redis = RedisCache('127.0.0.1:6379', {'PASSWORD': 'S3kr1t!', 'DB': 2})
@@ -173,20 +173,49 @@ class BaseAPI:
             raise ExtensionAlreadyInstalled(extension)
         
         try:
-            subprocess.run(['git', 'clone', dwarf.extensions.index[extension]['repository'], 'dwarf/' + extension])
+            repository = dwarf.extensions.index[extension]['repository']
         except KeyError:
             raise ExtensionNotInIndex(extension)
         
+        subprocess.run(['git', 'clone', repository, 'dwarf/' + extension])
+        
+        module_obj = importlib.import_module('dwarf.' + extension)
+        # libraries and packages the extension requires
+        requirements = module_obj.requirements if hasattr(module_obj, 'requirements') else []
+        # other extensions the extension requires
+        dependencies = module_obj.dependencies if hasattr(module_obj, 'dependencies') else []
+            
+        failed_to_import = {
+            'packages': [],
+            'extensions': [],
+        }
+            
+        for requirement in requirements:
+            try:
+                importlib.import_module(requirement)
+            except ImportError:
+                failed_to_import['packages'].append(requirement)
+        
+        for dependency in dependencies:
+            try:
+                importlib.import_module(dependency)
+            except ImportError:
+                failed_to_import['extensions'].append(dependency)
+        
+        if failed_to_import['packages'] or failed_to_import['extensions']:
+            return failed_to_import
+        
         # migrate database changes
-        call_command('makemigrations', 'dwarf')
-        call_command('migrate', 'dwarf')
+        management.call_command('makemigrations', 'dwarf')
+        management.call_command('migrate', 'dwarf')
         
         extensions.append(extension)
         self.set_extensions(extensions)
+        self.set_dependencies(dependencies, extension)
 
     def uninstall_extension(self, extension):
         """Uninstalls an installed extension.
-        Throws :exception:`ExtensionNotFound`
+        Raises :exception:`ExtensionNotFound`
         if the extension is not installed.
         
         Parameters
@@ -194,6 +223,26 @@ class BaseAPI:
         extension : str
             The name of the extension that should be installed.
         """
+        
+        extensions = self.get_extensions()
+        if extension not in extensions:
+            raise ExtensionNotFound(extension)
+        
+        dependencies_tree = self.get_dependencies()
+        
+        depending = []
+        
+        for _extension in list(dependencies_tree.keys()):
+            for dependency in dependencies_tree[_extension]:
+                if dependency is extension:
+                    depending.append(_extension)
+        
+        if depending:
+            return depending
+        
+        # migrate database changes
+        management.call_command('makemigrations', 'dwarf')
+        management.call_command('migrate', 'dwarf')
         
         def onerror(func, path, exc_info):
             """`shutil.rmtree` error handler that helps deleting read-only files on Windows."""
@@ -203,15 +252,28 @@ class BaseAPI:
             else:
                 raise
         
-        extensions = self.get_extensions()
-        if extension not in extensions:
-            raise ExtensionNotFound(extension)
-        
         shutil.rmtree('dwarf/' + extension, onerror=onerror)
         
         extensions.remove(extension)
         self.set_extensions(extensions)
-
+    
+    def get_dependencies(extension=None):
+        if extension is None:
+            return self.cache.get('dependencies', default={})
+        else:
+            try:
+                return self.get_dependencies()[extension]
+            except KeyError:
+                raise ExtensionNotFound(extension)
+    
+    def set_dependencies(dependencies, extension=None):
+        if extension is None:
+            self.cache.set('dependencies', dependencies)
+        else:
+            _dependencies = self.get_dependencies()
+            _dependencies[extension] = dependencies
+            self.set_dependencies(_dependencies)
+    
     def get_extensions(self):
         """Retrieves the names of all installed extensions and
         returns them as a list of `str`s.
@@ -229,7 +291,19 @@ class BaseAPI:
         """
         
         self.cache.set('extensions', extensions)
-   
+    
+    @staticmethod
+    def install_package(package):
+        """Installs a package from PyPI.
+        
+        Parameters
+        ----------
+        package : str
+            The name of the package to install.
+        """
+        
+        return pip.main(['install', package])
+    
     @staticmethod
     def get_dwarf_version():
         """Returns Dwarf's version."""
