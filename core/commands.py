@@ -219,7 +219,7 @@ class Core:
                         
                         if to_cascade:
                             await bot.say("Failed to uninstall '**"
-                                          + "**', '**".join(to_cascade) + "**'."
+                                          + "**', '**".join(to_cascade) + "**'.")
                             return False
                             failed_to_uninstall_extensions.append(extension)
                         else:
