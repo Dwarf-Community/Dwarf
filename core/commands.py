@@ -203,6 +203,7 @@ class Core:
                 to_cascade = base.uninstall_extension(extension)
             except ExtensionNotFound:
                 await bot.say("The extension '**" + extension + "**' is not installed.")
+                failed_to_uninstall_extensions.append(extension)
                 return False
             else:
                 if to_cascade:
@@ -232,7 +233,7 @@ class Core:
                             return False
                 
                 else:
-                    await bot.say("The '**" + extension "**' extension was uninstalled successfully.")
+                    await bot.say("The '**" + extension + "**' extension was uninstalled successfully.")
                     uninstalled_extensions.append(extension)
                     return True
         
