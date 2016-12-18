@@ -277,7 +277,7 @@ class BaseAPI:
         extensions = self.get_extensions()
         if extension not in extensions:
             extensions.append(extension)
-            return self.set_extensions(extension)
+            return self.set_extensions(extensions)
         return False
     
     def unregister_extension(self, extension):
