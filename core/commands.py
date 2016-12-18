@@ -173,13 +173,13 @@ class Core:
             completed_message += "**" + "**\n**".join(installed_extensions) + "**\n"
         if installed_packages:
             completed_message += "Installed packages:\n"
-            completed_message += "**" + "**\n**".join(installed_packages) + "**\n")
+            completed_message += "**" + "**\n**".join(installed_packages) + "**\n"
         if failed_to_install_extensions:
             completed_message += "Failed to install extensions:\n"
-            completed_message += "**" + "**\n**".join(failed_to_install_extensions) + "**\n")
+            completed_message += "**" + "**\n**".join(failed_to_install_extensions) + "**\n"
         if failed_to_install_packages:
             completed_message += "Failed to install packages:\n"
-            completed_message += "**" + "**\n**".join(failed_to_install_packages) + "**\n")
+            completed_message += "**" + "**\n**".join(failed_to_install_packages) + "**\n"
         
         await bot.say(completed_message)
 
@@ -244,7 +244,7 @@ class Core:
             completed_message += "**" + "**\n**".join(uninstalled_extensions) + "**\n"
         if failed_to_uninstall_extensions:
             completed_message += "Failed to uninstall extensions:\n"
-            completed_message += "**" + "**\n**".join(failed_to_uninstall_extensions) + "**\n")
+            completed_message += "**" + "**\n**".join(failed_to_uninstall_extensions) + "**\n"
         
         await bot.say(completed_message)
 
