@@ -37,11 +37,11 @@ class CacheAPI:
         If specified, the :class:`Cache` stores data in that
         extension's own storage area.
     """
-
+    
     def __init__(self, extension=""):
         self.backend = redis
         self.extension = extension
-
+    
     def get(self, key, default=None):
         """Retrieves a key's value from the cache.
         
@@ -56,7 +56,7 @@ class CacheAPI:
         if not self.extension:
             return self.backend.get(key='_'.join(['dwarf', key]), default=default)
         return self.backend.get(key='_'.join(['dwarf', self.extension, key]), default=default)
-
+    
     def set(self, key, value, timeout=None):
         """Sets a key in the cache.
         
@@ -69,7 +69,7 @@ class CacheAPI:
         if not self.extension:
             return self.backend.set(key='_'.join(['dwarf', key]), value=value, timeout=timeout)
         return self.backend.set(key='_'.join(['dwarf', self.extension, key]), value=value, timeout=timeout)
-
+    
     def get_many(self, keys):
         """Retrieves an iterable of keys' values from the cache.
         Returns a list of the keys' values.
@@ -89,7 +89,7 @@ class CacheAPI:
             for key in keys:
                 actual_keys.append('_'.join(['dwarf', self.extension, key]))
         return list(self.backend.get_many(keys=actual_keys).values())
-
+    
     def set_many(self, keys, values, timeout=None):
         """Sets an iterable of keys in the cache.
         If a key wasn't found, it inserts None into the list of values instead.
@@ -112,7 +112,7 @@ class CacheAPI:
             for key in keys:
                 actual_keys.append('_'.join(['dwarf', self.extension, key]))
         return list(self.backend.set_many(data=dict(zip(actual_keys, values)), timeout=timeout).values())
-
+    
     def delete(self, key):
         """Deletes a key from the cache.
         
@@ -137,14 +137,14 @@ class BaseAPI:
     cache : :class:`CacheAPI`
         The cache backend connection of the API.
     """
-
+    
     def __init__(self):
         self.cache = CacheAPI()
-
+    
     def get_token(self):
         """Retrieves the bot's token."""
         return self.cache.get('token')
-
+    
     def set_token(self, token):
         """Sets the bot's token.
         
@@ -155,10 +155,10 @@ class BaseAPI:
         """
         
         self.cache.set('token', token)
-
+    
     def delete_token(self):
         self.cache.delete('token')
-
+    
     def install_extension(self, extension):
         """Installs an extension via the Dwarf Extension Index.
         
@@ -184,12 +184,12 @@ class BaseAPI:
         requirements = module_obj.requirements if hasattr(module_obj, 'requirements') else []
         # other extensions the extension requires
         dependencies = module_obj.dependencies if hasattr(module_obj, 'dependencies') else []
-            
+        
         failed_to_import = {
             'packages': [],
             'extensions': [],
         }
-            
+        
         for requirement in requirements:
             try:
                 importlib.import_module(requirement)
@@ -203,16 +203,14 @@ class BaseAPI:
                 failed_to_import['extensions'].append(dependency)
         
         if failed_to_import['packages'] or failed_to_import['extensions']:
+            self.delete_extension(extension)
+            self.unregister_extension(extension)
             return failed_to_import
         
-        # migrate database changes
-        management.call_command('makemigrations', 'dwarf')
-        management.call_command('migrate', 'dwarf')
-        
-        extensions.append(extension)
-        self.set_extensions(extensions)
+        self.sync_database()
+        self.register_extension(extension)
         self.set_dependencies(dependencies, extension)
-
+    
     def uninstall_extension(self, extension):
         """Uninstalls an installed extension.
         Raises :exception:`ExtensionNotFound`
@@ -240,24 +238,11 @@ class BaseAPI:
         if depending:
             return depending
         
-        # migrate database changes
-        management.call_command('makemigrations', 'dwarf')
-        management.call_command('migrate', 'dwarf')
-        
-        def onerror(func, path, exc_info):
-            """`shutil.rmtree` error handler that helps deleting read-only files on Windows."""
-            if not os.access(path, os.W_OK):
-                os.chmod(path, stat.S_IWUSR)
-                func(path)
-            else:
-                raise
-        
-        shutil.rmtree('dwarf/' + extension, onerror=onerror)
-        
-        extensions.remove(extension)
-        self.set_extensions(extensions)
+        self.delete_extension(extension)
+        self.sync_database()
+        self.unregister_extension(extension)
     
-    def get_dependencies(extension=None):
+    def get_dependencies(self, extension=None):
         if extension is None:
             return self.cache.get('dependencies', default={})
         else:
@@ -266,13 +251,41 @@ class BaseAPI:
             except KeyError:
                 raise ExtensionNotFound(extension)
     
-    def set_dependencies(dependencies, extension=None):
+    def set_dependencies(self, dependencies, extension=None):
         if extension is None:
-            self.cache.set('dependencies', dependencies)
+            return self.cache.set('dependencies', dependencies)
         else:
             _dependencies = self.get_dependencies()
             _dependencies[extension] = dependencies
-            self.set_dependencies(_dependencies)
+            return self.set_dependencies(_dependencies)
+    
+    def download_extension(self, extension):
+        return subprocess.run(['git', 'clone', repository, 'dwarf/' + extension])
+    
+    def delete_extension(self, extension):
+        def onerror(func, path, exc_info):
+            """`shutil.rmtree` error handler that helps deleting read-only files on Windows."""
+            if not os.access(path, os.W_OK):
+                os.chmod(path, stat.S_IWUSR)
+                func(path)
+            else:
+                raise
+        
+        return shutil.rmtree('dwarf/' + extension, onerror=onerror)
+    
+    def register_extension(self, extension):
+        extensions = self.get_extensions()
+        if extension not in extensions:
+            extensions.append(extension)
+            return self.set_extensions(extension)
+        return False
+    
+    def unregister_extension(self, extension):
+        extensions = self.get_extensions()
+        if extension in extensions:
+            extensions.remove(extension)
+            return self.set_extensions(extensions)
+        return False
     
     def get_extensions(self):
         """Retrieves the names of all installed extensions and
@@ -280,7 +293,7 @@ class BaseAPI:
         """
         
         return self.cache.get('extensions', default=[])
-
+    
     def set_extensions(self, extensions):
         """Sets the list of the installed extensions.
         
@@ -290,7 +303,12 @@ class BaseAPI:
             The names of the extensions to set as installed.
         """
         
-        self.cache.set('extensions', extensions)
+        return self.cache.set('extensions', extensions)
+    
+    @staticmethod
+    def sync_database():
+        management.call_command('makemigrations', 'dwarf')
+        management.call_command('migrate', 'dwarf')
     
     @staticmethod
     def install_package(package):
