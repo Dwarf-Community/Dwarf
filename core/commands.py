@@ -69,21 +69,33 @@ class Core:
         await self.bot.say(result)
 
     @commands.command(pass_context=True)
-    async def install(self, ctx, *, extension):
+    async def install(self, ctx, *, extensions):
         """Installs an extension."""
         
         bot = self.bot
+        
+        extensions = extensions.lower().split()
+        
+        installed_extensions = []
+        installed_packages = []
+        failed_to_install_extensions = []
+        failed_to_install_packages = []
         
         async def _install(extension):
             await bot.say("Installing '**" + extension + "**'...")
             await bot.type()
             try:
                 unsatisfied = base.install_extension(extension)
-                if unsatisfied is None:
-                    await bot.say("The '**" + extension + "**' extension was uninstalled before, and "
-                                       "Dwarf wasn't being rebooted since then. Reboot Dwarf to fix this.")
-                    return False
-                if unsatisfied['packages'] or unsatisfied['extensions']:
+            except ExtensionAlreadyInstalled:
+                await bot.say("The extension '**" + extension + "**' is already installed.")
+                failed_to_install_extensions.append(extension)
+                return False
+            except ExtensionNotInIndex:
+                await bot.say("There is no extension called '**" + extension + "**'.")
+                failed_to_install_extensions.append(extension)
+                return False
+            else:
+                if unsatisfied is not None:
                     failure_message = strings.failed_to_install.format(extension)
                     
                     if unsatisfied['packages']:
@@ -99,113 +111,142 @@ class Core:
                     if unsatisfied['packages']:
                         await bot.say("Do you want to install the required packages now? (yes/no)")
                         answer = await bot.wait_for_message(author=ctx.message.author,
-                                                                   channel=ctx.message.channel,
-                                                                   check=is_boolean_answer,
-                                                                   timeout=60)
+                                                            channel=ctx.message.channel,
+                                                            check=is_boolean_answer,
+                                                            timeout=60)
                         if answer is not None and answer_to_boolean(answer) is True:
                             for package in unsatisfied['packages']:
                                 return_code = base.install_package(package)
                                 if return_code is 0:
                                     unsatisfied['packages'].remove(package)
                                     await bot.say("Installed package '**"
-                                                       + package + "**' successfully.")
+                                                  + package + "**' successfully.")
+                                    installed_packages.append(package)
                             
                             if unsatisfied['packages']:
-                                install_packages_error_message = "Failed to install '**"
-                                install_packages_error_message += "**', '**".join(unsatisfied['packages'])
-                                install_packages_error_message += "**'."
-                                await bot.say(install_packages_error_message)
+                                self.bot.say("Failed to install packages: '**"
+                                             + "**', '**".join(unsatisfied['packages']) + "**'.")
+                                failed_to_install_packages += unsatisfied['packages']
                                 return False
                         else:
-                            await bot.say("Alright, I will not install any packages just now.")
+                            await bot.say("Alright, I will not install any packages the '**"
+                                          + extension + "**' extension depends on just now.")
+                            failed_to_install_extensions.append(extension)
                             return False
                     
                     if not unsatisfied['packages'] and unsatisfied['extensions']:
                         await bot.say("Do you want to install the extensions '**"
-                                           + extension + "**' depends on now? (yes/no)")
+                                      + extension + "**' depends on now? (yes/no)")
                         answer = await bot.wait_for_message(author=ctx.message.author,
-                                                                 channel=ctx.message.channel,
-                                                                 check=is_boolean_answer,
-                                                                 timeout=60)
+                                                            channel=ctx.message.channel,
+                                                            check=is_boolean_answer,
+                                                            timeout=60)
                         if answer is not None and answer_to_boolean(answer) is True:
-                            for _extension in unsatisfied['extensions']:
-                                return_code = await _install(_extension)
-                                if return_code is True:
-                                    unsatisfied['extensions'].remove(_extension)
-                        
+                            for extension_to_install in unsatisfied['extensions']:
+                                extension_install_return_code = await _install(extension_to_install)
+                                if extension_install_return_code is True:
+                                    unsatisfied['extensions'].remove(extension_to_install)
+                            
                             if unsatisfied['extensions']:
-                                install_extensions_error_message = "Failed to install '**"
-                                install_extensions_error_message += "**', '**".join(unsatisfied['extensions'])
-                                install_extensions_error_message += "**'."
-                                await bot.say(install_extensions_error_message)
+                                await bot.say("Failed to install one or more of '**"
+                                              + extension + "**' dependencies.")
+                                failed_to_install_extensions.append(extension)
                                 return False
                             else:
                                 return await _install(extension)
                         else:
-                            await bot.say("Alright, I will not install any extensions just now.")
+                            await bot.say("Alright, I will not install any dependencies just now")
+                            failed_to_install_extensions.append(extension)
                             return False
                 
                 else:
-                    await bot.say("Installation finished, new extension '**" + extension
-                                       + "**' will be available after reboot.")
+                    await bot.say("The extension '**" + extension + "**' was installed successfully.")
+                    installed_extensions.append(extension)
                     return True
-            
-            except ExtensionAlreadyInstalled:
-                await bot.say("The extension '**" + extension + "**' is already installed.")
-            except ExtensionNotInIndex:
-                await bot.say("There is no extension called '**" + extension + "**'.")
         
-        await _install(extension)
+        for extension in extensions:
+            await _install(extension)
+        
+        completed_message = "Installation completed.\n"
+        if installed_extensions:
+            completed_message += "Installed extensions:\n"
+            completed_message += "**" + "**\n**".join(installed_extensions) + "**\n"
+        if installed_packages:
+            completed_message += "Installed packages:\n"
+            completed_message += "**" + "**\n**".join(installed_packages) + "**\n")
+        if failed_to_install_extensions:
+            completed_message += "Failed to install extensions:\n"
+            completed_message += "**" + "**\n**".join(failed_to_install_extensions) + "**\n")
+        if failed_to_install_packages:
+            completed_message += "Failed to install packages:\n"
+            completed_message += "**" + "**\n**".join(failed_to_install_packages) + "**\n")
+        
+        await bot.say(completed_message)
 
     @commands.command(pass_context=True)
-    async def uninstall(self, ctx, *, extension):
+    async def uninstall(self, ctx, *, extensions):
         """Uninstalls an extension."""
         
         bot = self.bot
+        
+        extensions = extensions.lower().split()
+        
+        uninstalled_extensions = []
+        failed_to_uninstall_extensions = []
         
         async def _uninstall(extension):
             await bot.say("Uninstalling '**" + extension + "**'...")
             await bot.type()
             try:
                 to_cascade = base.uninstall_extension(extension)
+            except ExtensionNotFound:
+                await bot.say("The extension '**" + extension + "**' is not installed.")
+                return False
+            else:
                 if to_cascade:
-                    to_cascade_message = strings.would_be_uninstalled_too.format(extension) + "\n"
-                    to_cascade_message += "**" + "**\n**".join(to_cascade) + "**"
-                    await bot.say(to_cascade_message)
+                    await bot.say(strings.would_be_uninstalled_too.format(extension) + "\n"
+                                  + "**" + "**\n**".join(to_cascade) + "**")
                     await bot.say(strings.proceed_with_uninstallation)
-                    
                     answer = await bot.wait_for_message(author=ctx.message.author,
                                                              channel=ctx.message.channel,
                                                              check=is_boolean_answer,
                                                              timeout=60)
-                    
                     if answer is not None and answer_to_boolean(answer) is True:
-                        for _extension in to_cascade:
-                            return_code = await _uninstall(_extension)
+                        for extension_to_uninstall in to_cascade:
+                            return_code = await _uninstall(extension_to_uninstall)
                             if return_code is True:
                                 to_cascade.remove(_extension)
                         
                         if to_cascade:
-                            uninstall_extensions_error_message = "Failed to uninstall '**"
-                            uninstall_extensions_error_message += "**', '**".join(to_cascade)
-                            uninstall_extensions_error_message += "**'."
-                            await bot.say(uninstall_extensions_error_message)
+                            await bot.say("Failed to uninstall '**"
+                                          + "**', '**".join(to_cascade) + "**'."
                             return False
+                            failed_to_uninstall_extensions.append(extension)
                         else:
                             return await _uninstall(extension)
                     else:
                             await bot.say("Alright, I will not install any extensions just now.")
+                            failed_to_uninstall_extensions.append(extension)
                             return False
                 
                 else:
                     await bot.say("Uninstallation finished, changes "
                                        + "will be available after reboot.")
+                    uninstalled_extensions.append(extension)
                     return True
-            
-            except ExtensionNotFound:
-                await bot.say("The extension '**" + extension + "**' is not installed.")
         
-        await _uninstall(extension)
+        for extension in extensions:
+            await _uninstall(extension)
+        
+        completed_message = "Uninstallation completed.\n"
+        if uninstalled_extensions:
+            completed_message += "Uninstalled extensions:\n"
+            completed_message += "**" + "**\n**".join(uninstalled_extensions) + "**\n"
+        if failed_to_uninstall_extensions:
+            completed_message += "Failed to uninstall extensions:\n"
+            completed_message += "**" + "**\n**".join(failed_to_uninstall_extensions) + "**\n")
+        
+        await bot.say(completed_message)
 
     @commands.group(name="set", pass_context=True)
     async def set(self, ctx):
@@ -421,7 +462,8 @@ class Core:
             self.bot.command_prefix = core.get_prefixes()
             await self.bot.say("The prefix '**" + prefix + "**' was added successfully.")
         except PrefixAlreadyExists:
-            await self.bot.say("The prefix '**" + prefix + "**' could not be added as it is already a prefix.")
+            await self.bot.say("The prefix '**" + prefix + "**' could not be added "
+                               "as it is already a prefix.")
 
     @remove.command(pass_context=True)
     @permissions.owner()
