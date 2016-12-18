@@ -180,6 +180,8 @@ class Core:
         if failed_to_install_packages:
             completed_message += "Failed to install packages:\n"
             completed_message += "**" + "**\n**".join(failed_to_install_packages) + "**\n"
+        if installed_extensions:
+            completed_message += "Reboot Dwarf for changes to take effect."
         
         await bot.say(completed_message)
 
@@ -230,8 +232,7 @@ class Core:
                             return False
                 
                 else:
-                    await bot.say("Uninstallation finished, changes "
-                                       + "will be available after reboot.")
+                    await bot.say("The '**" + extension "**' extension was uninstalled successfully.")
                     uninstalled_extensions.append(extension)
                     return True
         
@@ -245,6 +246,8 @@ class Core:
         if failed_to_uninstall_extensions:
             completed_message += "Failed to uninstall extensions:\n"
             completed_message += "**" + "**\n**".join(failed_to_uninstall_extensions) + "**\n"
+        if uninstalled_extensions:
+            completed_message += "Reboot Dwarf for changes to take effect."
         
         await bot.say(completed_message)
 
