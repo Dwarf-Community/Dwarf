@@ -21,7 +21,7 @@ Any path will do; I'd suggest `/djangoenv`. After you've created the virtualenv,
 And on Windows:
 `/djangoenv/Scripts/activate.bat`
 (Replace /djangoenv with the path to your virtual environment.) You should now see the name of your virtualenv in brackets (e.g. `(djangoenv)`). If you do, you can now start installing the requirements:
-`pip install django django-redis-cache psycopg2 discord.py`
+`pip install django redis psycopg2 discord.py`
 After you've done that, start a new Django project in a directory of your choice as follows:
 `django-admin startproject project-name`
 (Replace project-name with the name of your project, e.g. dwarfproject, mybot or mysite.) This will create the folder structure of your Django project. Now you can download Dwarf by going to your project directory and issueing the following (use Git Bash for this if you're on Windows):
@@ -29,7 +29,7 @@ After you've done that, start a new Django project in a directory of your choice
 `git submodule init`
 `git submodule update --recursive --remote`
 You now need to adjust the settings.py file (in `/project-name/project-name`) as follows:
-- Set the database backend to PostgreSQL.
+- Set the database backend to PostgreSQL (recommended):
     Example:
 ```python
     DATABASES = {
@@ -61,8 +61,17 @@ You now need to adjust the settings.py file (in `/project-name/project-name`) as
 ```python
     AUTH_USER_MODEL = 'dwarf.User'
 ```
-You also need to enter your Redis password (and maybe host) in `/dwarf/api/__init__.py`:
-`CacheAPI = RedisCache('127.0.0.1:6379', {'PASSWORD': 'S3kr1t!', 'DEFAULT_TIMEOUT': None})`
+- You also have to add your Redis credentials to settings.py:
+```python
+DWARF_CACHE_BACKEND = {
+    'default': {
+        'HOST': 'localhost',
+        'PORT': 6379,
+        'PASSWORD': 'S3kr1t!',
+        'DB': 1,
+    }
+}
+```
 Now that you've done that, you need to decide at which URL you want to make Dwarf's web front-end available. Open `/project-name/project-name/urls.py` and make it look something like this:
 ```python
 from django.conf.urls import url, include

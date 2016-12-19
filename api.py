@@ -1,20 +1,31 @@
 from django.core import management
-from redis_cache import RedisCache
+from django.conf import settings
+from redis import Redis
 
 import dwarf.extensions
 from . import version
 
-import subprocess, shutil, os, stat, importlib, pip
+import subprocess
+import shutil
+import os
+import stat
+import importlib
+import pip
 
 
-redis = RedisCache('127.0.0.1:6379', {'PASSWORD': 'S3kr1t!', 'DB': 2})
+dwarf_cache = settings.DWARF_CACHE_BACKEND['default']
+
+redis = Redis(host=dwarf_cache['HOST'], port=dwarf_cache['PORT'],
+              db=dwarf_cache['DB'], password=dwarf_cache['PASSWORD'])
 
 
 class ExtensionAlreadyInstalled(Exception):
     pass
 
+
 class ExtensionNotInIndex(Exception):
     pass
+
 
 class ExtensionNotFound(Exception):
     pass
@@ -30,7 +41,7 @@ class CacheAPI:
     extension : Optional[str]
 
     Attributes
-    -----------
+    ----------
     backend
         The cache backend the :class:`Cache` connects to.
     extension : Optional[str]
@@ -54,8 +65,18 @@ class CacheAPI:
         """
         
         if not self.extension:
-            return self.backend.get(key='_'.join(['dwarf', key]), default=default)
-        return self.backend.get(key='_'.join(['dwarf', self.extension, key]), default=default)
+            value = self.backend.get('_'.join(['dwarf', key]))
+            if value is None:
+                return default
+            else:
+                return value
+            # return self.backend.get(key='_'.join(['dwarf', key]), default=default)
+        else:
+            value = self.backend.get('_'.join(['dwarf', self.extension, key]))
+            if value is None:
+                return default
+            else:
+                return value
     
     def set(self, key, value, timeout=None):
         """Sets a key in the cache.
@@ -64,54 +85,16 @@ class CacheAPI:
         ----------
         key : str
             The key to set in the cache.
-        """
-        
-        if not self.extension:
-            return self.backend.set(key='_'.join(['dwarf', key]), value=value, timeout=timeout)
-        return self.backend.set(key='_'.join(['dwarf', self.extension, key]), value=value, timeout=timeout)
-    
-    def get_many(self, keys):
-        """Retrieves an iterable of keys' values from the cache.
-        Returns a list of the keys' values.
-        If a key wasn't found, it inserts None into the list of values instead.
-        
-        Parameters
-        ----------
-        keys : iter of str
-            The keys to retrieve from the cache.
-        """
-        
-        actual_keys = []
-        if not self.extension:
-            for key in keys:
-                actual_keys.append('_'.join(['dwarf', key]))
-        else:
-            for key in keys:
-                actual_keys.append('_'.join(['dwarf', self.extension, key]))
-        return list(self.backend.get_many(keys=actual_keys).values())
-    
-    def set_many(self, keys, values, timeout=None):
-        """Sets an iterable of keys in the cache.
-        If a key wasn't found, it inserts None into the list of values instead.
-        
-        Parameters
-        ----------
-        keys : iter of str
-            The keys to retrieve from the cache.
-        values : iter
-            An iterable of values to assign to the keys.
+        value
+            A value to assign to the key. Can be anything.
         timeout : Optional[int]
-            After this amount of time (in seconds), the key will be deleted.
+            After this amount of time (in seconds), the keys will be deleted.
         """
         
-        actual_keys = []
         if not self.extension:
-            for key in keys:
-                actual_keys.append('_'.join(['dwarf', key]))
+            return self.backend.set('_'.join(['dwarf', key]), value, ex=timeout)
         else:
-            for key in keys:
-                actual_keys.append('_'.join(['dwarf', self.extension, key]))
-        return list(self.backend.set_many(data=dict(zip(actual_keys, values)), timeout=timeout).values())
+            return self.backend.set('_'.join(['dwarf', self.extension, key]), value, ex=timeout)
     
     def delete(self, key):
         """Deletes a key from the cache.
@@ -123,8 +106,9 @@ class CacheAPI:
         """
         
         if not self.extension:
-            return self.backend.delete(key='_'.join(['dwarf', key]))
-        return self.backend.delete(key='_'.join(['dwarf', self.extension, key]))
+            return self.backend.delete('_'.join(['dwarf', key]))
+        else:
+            return self.backend.delete('_'.join(['dwarf', self.extension, key]))
 
 
 class BaseAPI:
@@ -172,12 +156,7 @@ class BaseAPI:
         if extension in extensions:
             raise ExtensionAlreadyInstalled(extension)
         
-        try:
-            repository = dwarf.extensions.index[extension]['repository']
-        except KeyError:
-            raise ExtensionNotInIndex(extension)
-        
-        subprocess.run(['git', 'clone', repository, 'dwarf/' + extension])
+        self.download_extension(extension)
         
         module_obj = importlib.import_module('dwarf.' + extension)
         # libraries and packages the extension requires
@@ -258,11 +237,18 @@ class BaseAPI:
             _dependencies = self.get_dependencies()
             _dependencies[extension] = dependencies
             return self.set_dependencies(_dependencies)
-    
-    def download_extension(self, extension):
-        return subprocess.run(['git', 'clone', repository, 'dwarf/' + extension])
-    
-    def delete_extension(self, extension):
+
+    @staticmethod
+    def download_extension(extension):
+        try:
+            repository = dwarf.extensions.index[extension]['repository']
+        except KeyError:
+            raise ExtensionNotInIndex(extension)
+
+        subprocess.run(['git', 'clone', repository, 'dwarf/' + extension])
+
+    @staticmethod
+    def delete_extension(extension):
         def onerror(func, path, exc_info):
             """`shutil.rmtree` error handler that helps deleting read-only files on Windows."""
             if not os.access(path, os.W_OK):
