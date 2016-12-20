@@ -12,7 +12,7 @@ Have fun! If you need help, drop by [my Discord server](https://discord.me/Ailee
 
 ### Dwarf - Quick Install Guide
 
-First off, you need Python 3.5 or above, PostgreSQL and Redis (the Windows port works, too). After that, start a terminal session (cmd.exe on Windows) and install virtualenv:
+First off, you need Python 3.5 or above, PostgreSQL and Redis (the Windows port works, too). After you installed the requirements (if necessary), start a terminal session (cmd.exe on Windows) and install virtualenv:
 `pip3 install virtualenv`
 Once you have that, create a virtual environment as follows:
 `virtualenv path/to/where/you/want/to/create/your/virtualenv`
@@ -24,10 +24,10 @@ And on Windows:
 `pip install django redis psycopg2 discord.py`
 After you've done that, start a new Django project in a directory of your choice as follows:
 `django-admin startproject project-name`
-(Replace project-name with the name of your project, e.g. dwarfproject, mybot or mysite.) This will create the folder structure of your Django project. Now you can download Dwarf by going to your project directory and issueing the following (use Git Bash for this if you're on Windows):
+(Replace project-name with the name of your project, e.g. dwarfproject, mybot or mysite.) This will create the folder structure of your Django project. Now you can download Dwarf by going to your project directory (`cd project-name`) and issueing the following (use Git Bash for this if you're on Windows):
 `git clone https://github.com/Dwarf-Community/dwarf`
-`git submodule init`
-`git submodule update --recursive --remote`
+`cd dwarf`
+`git submodule update --init --recursive --remote`
 You now need to adjust the settings.py file (in `/project-name/project-name`) as follows:
 - Set the database backend to PostgreSQL (recommended):
     Example:
@@ -106,10 +106,11 @@ Keep in mind that Django checks these `urlpatterns` from top to bottom, so if yo
 
 Finally, you have to let Django setup the database for you:
 `python manage.py makemigrations`
+`python manage.py makemigrations dwarf`
 `python manage.py migrate`
 
 That should be it for now. There will be more things to install as soon as the web front-end part will be released, such as nginx and gunicorn, so keep an eye at [my Discord server](https://discord.me/AileenLumina)! :)
 
 You can start the bot by going to your Django project's directory and issueing the following command (after you activated your virtualenv as described above):
 `python manage.py startbot`
-Have fun! If you need help, drop by #support and we'll try to help you. ^-^
+Have fun! If you need help, drop by the Discord server and we'll try to help you. ^-^
