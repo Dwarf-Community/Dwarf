@@ -24,7 +24,7 @@ And on Windows:
 `pip install django redis psycopg2 discord.py`
 After you've done that, start a new Django project in a directory of your choice as follows:
 `django-admin startproject project-name`
-(Replace project-name with the name of your project, e.g. dwarfproject, mybot or mysite.) This will create the folder structure of your Django project. Now you can download Dwarf by going to your project directory (`cd project-name`) and issueing the following (use Git Bash for this if you're on Windows):
+(Replace project-name with the name of your project, e.g. dwarfproject, mybot or mysite. Do NOT name it dwarf, though.) This will create the folder structure of your Django project. Now you can download Dwarf by going to your project directory (`cd project-name`) and issueing the following (use Git Bash for this if you're on Windows):
 `git clone https://github.com/Dwarf-Community/dwarf`
 `cd dwarf`
 `git submodule update --init --recursive --remote`
@@ -108,6 +108,7 @@ Finally, you have to let Django setup the database for you:
 `python manage.py makemigrations`
 `python manage.py makemigrations dwarf`
 `python manage.py migrate`
+`python manage.py migrate dwarf`
 
 That should be it for now. There will be more things to install as soon as the web front-end part will be released, such as nginx and gunicorn, so keep an eye at [my Discord server](https://discord.me/AileenLumina)! :)
 
