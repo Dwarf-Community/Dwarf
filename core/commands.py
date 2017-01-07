@@ -252,7 +252,7 @@ class Core:
         
         await bot.say(completed_message)
 
-    @commands.group(name="set", pass_context=True)
+    @commands.group(name='set', pass_context=True)
     async def set(self, ctx):
         """Group of commands that change the bot's settings."""
         # [p]set <subcommand>
@@ -261,7 +261,7 @@ class Core:
             await send_command_help(ctx)
             pass
     
-    @commands.group(name="get", pass_context=True)
+    @commands.group(name='get', pass_context=True)
     async def get(self, ctx):
         """Group of commands that show the bot's settings."""
         # [p]set <subcommand>
@@ -270,7 +270,7 @@ class Core:
             await send_command_help(ctx)
             pass
 
-    @commands.group(name="add", pass_context=True)
+    @commands.group(name='add', pass_context=True)
     async def add(self, ctx):
         """Group of commands that add items to some of the bot's settings."""
         # [p]add <subcommand>
@@ -279,8 +279,17 @@ class Core:
             await send_command_help(ctx)
             pass
 
-    @commands.group(name="remove", pass_context=True)
+    @commands.group(name='remove', pass_context=True)
     async def remove(self, ctx):
+        """Group of commands that remove items from some of the bot's settings."""
+        # [p]remove <subcommand>
+        
+        if ctx.invoked_subcommand is None:
+            await send_command_help(ctx)
+            pass
+    
+    @commands.group(name='setup', pass_context=True)
+    async def setup(self, ctx):
         """Group of commands that remove items from some of the bot's settings."""
         # [p]remove <subcommand>
         
