@@ -1,6 +1,6 @@
 from django.core import management
 from django.conf import settings
-from redis import Redis
+from redis_cache import RedisCache
 
 import dwarf.extensions
 from . import version
@@ -15,17 +15,14 @@ import pip
 
 dwarf_cache = settings.DWARF_CACHE_BACKEND['default']
 
-redis = Redis(host=dwarf_cache['HOST'], port=dwarf_cache['PORT'],
-              db=dwarf_cache['DB'], password=dwarf_cache['PASSWORD'])
+redis = RedisCache(dwarf_cache['HOST'], dwarf_cache)
 
 
 class ExtensionAlreadyInstalled(Exception):
     pass
 
-
 class ExtensionNotInIndex(Exception):
     pass
-
 
 class ExtensionNotFound(Exception):
     pass
@@ -41,7 +38,7 @@ class CacheAPI:
     extension : Optional[str]
 
     Attributes
-    ----------
+    -----------
     backend
         The cache backend the :class:`Cache` connects to.
     extension : Optional[str]
@@ -65,18 +62,8 @@ class CacheAPI:
         """
         
         if not self.extension:
-            value = self.backend.get('_'.join(['dwarf', key]))
-            if value is None:
-                return default
-            else:
-                return value
-            # return self.backend.get(key='_'.join(['dwarf', key]), default=default)
-        else:
-            value = self.backend.get('_'.join(['dwarf', self.extension, key]))
-            if value is None:
-                return default
-            else:
-                return value
+            return self.backend.get(key='_'.join(['dwarf', key]), default=default)
+        return self.backend.get(key='_'.join(['dwarf', self.extension, key]), default=default)
     
     def set(self, key, value, timeout=None):
         """Sets a key in the cache.
@@ -85,16 +72,54 @@ class CacheAPI:
         ----------
         key : str
             The key to set in the cache.
-        value
-            A value to assign to the key. Can be anything.
-        timeout : Optional[int]
-            After this amount of time (in seconds), the keys will be deleted.
         """
         
         if not self.extension:
-            return self.backend.set('_'.join(['dwarf', key]), value, ex=timeout)
+            return self.backend.set(key='_'.join(['dwarf', key]), value=value, timeout=timeout)
+        return self.backend.set(key='_'.join(['dwarf', self.extension, key]), value=value, timeout=timeout)
+    
+    def get_many(self, keys):
+        """Retrieves an iterable of keys' values from the cache.
+        Returns a list of the keys' values.
+        If a key wasn't found, it inserts None into the list of values instead.
+        
+        Parameters
+        ----------
+        keys : iter of str
+            The keys to retrieve from the cache.
+        """
+        
+        actual_keys = []
+        if not self.extension:
+            for key in keys:
+                actual_keys.append('_'.join(['dwarf', key]))
         else:
-            return self.backend.set('_'.join(['dwarf', self.extension, key]), value, ex=timeout)
+            for key in keys:
+                actual_keys.append('_'.join(['dwarf', self.extension, key]))
+        return list(self.backend.get_many(keys=actual_keys).values())
+    
+    def set_many(self, keys, values, timeout=None):
+        """Sets an iterable of keys in the cache.
+        If a key wasn't found, it inserts None into the list of values instead.
+        
+        Parameters
+        ----------
+        keys : iter of str
+            The keys to retrieve from the cache.
+        values : iter
+            An iterable of values to assign to the keys.
+        timeout : Optional[int]
+            After this amount of time (in seconds), the key will be deleted.
+        """
+        
+        actual_keys = []
+        if not self.extension:
+            for key in keys:
+                actual_keys.append('_'.join(['dwarf', key]))
+        else:
+            for key in keys:
+                actual_keys.append('_'.join(['dwarf', self.extension, key]))
+        return list(self.backend.set_many(data=dict(zip(actual_keys, values)), timeout=timeout).values())
     
     def delete(self, key):
         """Deletes a key from the cache.
@@ -106,9 +131,8 @@ class CacheAPI:
         """
         
         if not self.extension:
-            return self.backend.delete('_'.join(['dwarf', key]))
-        else:
-            return self.backend.delete('_'.join(['dwarf', self.extension, key]))
+            return self.backend.delete(key='_'.join(['dwarf', key]))
+        return self.backend.delete(key='_'.join(['dwarf', self.extension, key]))
 
 
 class BaseAPI:
