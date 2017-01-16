@@ -97,16 +97,20 @@ set_logger()
 
 
 class Bot(commands.Bot):
-    async def wait_for_choice(self, author, message, choices : iter, timeout=0):
+    async def wait_for_choice(self, author, channel, message, choices : iter, timeout=0):
         choice_format = "**{}**: {}"
         choice_messages = []
+        def choice_check(message):
+            return int(message.content[0]) - 1 is in range(len(choices))
         
         for i in range(choices):
             choice_messages.append(choice_format.format(i + 1, choices[i]))
         
         choices_message = "\n".join(choice_messages)
         final_message = "{}\n\n{}".format(message, choices_message)
-        return await self.wait_for_message(author, final_message, timeout=timeout)
+        await self.send_message(channel, final_message)
+        return await self.wait_for_message(author=author, channel=channel,
+                                           check=choice_check, timeout=timeout)
 
 
 bot = Bot(command_prefix=core.get_prefixes(), description=__doc__, pm_help=core.is_help_private())
