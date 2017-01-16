@@ -95,7 +95,21 @@ def set_logger():
 
 set_logger()
 
-bot = commands.Bot(command_prefix=core.get_prefixes(), description=__doc__, pm_help=core.is_help_private())
+
+class Bot(commands.Bot):
+    async def wait_for_choice(self, author, message, choices : iter, timeout=0):
+        choice_format = "**{}**: {}"
+        choice_messages = []
+        
+        for i in range(choices):
+            choice_messages.append(choice_format.format(i + 1, choices[i]))
+        
+        choices_message = "\n".join(choice_messages)
+        final_message = "{}\n\n{}".format(message, choices_message)
+        return await self.wait_for_message(author, final_message, timeout=timeout)
+
+
+bot = Bot(command_prefix=core.get_prefixes(), description=__doc__, pm_help=core.is_help_private())
 
 
 def _load_cogs(bot):
