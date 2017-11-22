@@ -13,9 +13,9 @@ import importlib
 import pip
 
 
-dwarf_cache = settings.DWARF_CACHE_BACKEND['default']
+dwarf_cache = settings.DWARF_CACHE_BACKEND['redis']
 
-redis = RedisCache('{}:{}'.format(dwarf_cache['HOST'], dwarf_cache['PORT']), dwarf_cache)
+redis = RedisCache('{}:{}'.format(dwarf_cache['HOST'], dwarf_cache['PORT']), {'password': dwarf_cache['PASSWORD']})
 
 
 class ExtensionAlreadyInstalled(Exception):

@@ -1,6 +1,0 @@
-[submodule "extensions"]
-	path = extensions
-	url = https://github.com/Dwarf-Community/Dwarf-Extensions
-[submodule "docs"]
-	path = docs
-	url = https://github.com/Dwarf-Community/Dwarf-Docs

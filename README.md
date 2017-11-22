@@ -27,7 +27,8 @@ After you've done that, start a new Django project in a directory of your choice
 (Replace project-name with the name of your project, e.g. dwarfproject, mybot or mysite. Do NOT name it dwarf, though.) This will create the folder structure of your Django project. Now you can download Dwarf by going to your project directory (`cd project-name`) and issueing the following (use Git Bash for this if you're on Windows):
 `git clone https://github.com/Dwarf-Community/dwarf`
 `cd dwarf`
-`git submodule update --init --recursive --remote`
+`git clone https://github.com/Dwarf-Community/Dwarf-Extensions extensions`
+`git clone https://github.com/Dwarf-Community/Dwarf-Docs docs`
 You now need to adjust the settings.py file (in `/project-name/project-name`) as follows:
 - Set the database backend to PostgreSQL (recommended):
     Example:
@@ -61,14 +62,14 @@ You now need to adjust the settings.py file (in `/project-name/project-name`) as
 ```python
     AUTH_USER_MODEL = 'dwarf.User'
 ```
-- You also have to add your Redis credentials to settings.py:
+- You also have to add your Redis credentials to settings.py (Redis ia currently the only cache backend available for Dwarf):
 ```python
 DWARF_CACHE_BACKEND = {
-    'default': {
+    'redis': {
         'HOST': 'localhost',
         'PORT': 6379,
         'PASSWORD': 'S3kr1t!',
-        'DB': 1,
+        'DB': 0,
     }
 }
 ```

@@ -101,7 +101,7 @@ class Bot(commands.Bot):
         choice_format = "**{}**: {}"
         choice_messages = []
         def choice_check(message):
-            return int(message.content[0]) - 1 is in range(len(choices))
+            return int(message.content[0]) - 1 in range(len(choices))
         
         for i in range(choices):
             choice_messages.append(choice_format.format(i + 1, choices[i]))
