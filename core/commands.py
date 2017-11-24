@@ -58,14 +58,7 @@ class Core:
             result = await result
 
         result = f.block(result, 'py')
-        if not ctx.message.channel.is_private:
-            censor = base.get_token()
-            r = "[EXPUNGED]"
-            for w in censor:
-                if w != "":
-                    result = result.replace(w, r)
-                    result = result.replace(w.lower(), r)
-                    result = result.replace(w.upper(), r)
+        
         await self.bot.say(result)
 
     @commands.command(pass_context=True)
