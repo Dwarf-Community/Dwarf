@@ -8,11 +8,11 @@ The CacheAPI allows you to store key/value pairs in the Redis database. Syntax:
 `CacheAPI.set(key='dwarf_your_key_here', value=12345)`
 The value can be of any type. After you've set it, you can get it from the Redis database as follows:
 `data = CacheAPI.get(key='dwarf_your_key_here')`
-Have fun! If you need help, drop by [my Discord server](https://discord.me/AileenLumina). If you write an extension and want it to be installable for others, add it to the Dwarf Extension Index (dwarf/extensions.py).
+Have fun! If you need help, drop by [our Discord server](https://discord.gg/rAHwvyE). If you write an extension and want it to be installable for others, add it to the [Dwarf Extension Index](https://github.com/Dwarf-Community/Dwarf-Extensions).
 
 ### Dwarf - Quick Install Guide
 
-First off, you need Python 3.5 or above, PostgreSQL and Redis (the Windows port works, too). After you installed the requirements (if necessary), start a terminal session (cmd.exe on Windows) and install virtualenv:
+First off, you need Python 3.5 or above, PostgreSQL (optional, but recommended) and Redis (the Windows port works, too). After you installed the requirements (if necessary), start a terminal session (cmd.exe on Windows) and install virtualenv:
 `pip3 install virtualenv`
 Once you have that, create a virtual environment as follows:
 `virtualenv path/to/where/you/want/to/create/your/virtualenv`
@@ -109,9 +109,8 @@ Finally, you have to let Django setup the database for you:
 `python manage.py makemigrations`
 `python manage.py makemigrations dwarf`
 `python manage.py migrate`
-`python manage.py migrate dwarf`
 
-That should be it for now. There will be more things to install as soon as the web front-end part will be released, such as nginx and gunicorn, so keep an eye at [my Discord server](https://discord.me/AileenLumina)! :)
+That should be it for now. There will be more things to install as soon as the web front-end part will be released, such as nginx and gunicorn, so keep an eye at [our Discord server](https://discord.gg/rAHwvyE)! :)
 
 You can start the bot by going to your Django project's directory and issueing the following command (after you activated your virtualenv as described above):
 `python manage.py startbot`
