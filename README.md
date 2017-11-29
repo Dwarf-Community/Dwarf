@@ -21,7 +21,7 @@ Any path will do; I'd suggest `/djangoenv`. After you've created the virtualenv,
 And on Windows:
 `/djangoenv/Scripts/activate.bat`
 (Replace /djangoenv with the path to your virtual environment.) You should now see the name of your virtualenv in brackets (e.g. `(djangoenv)`). If you do, you can now start installing the requirements:
-`pip install django redis psycopg2 discord.py`
+`pip install django redis django-redis-cache psycopg2 discord.py`
 After you've done that, start a new Django project in a directory of your choice as follows:
 `django-admin startproject project-name`
 (Replace project-name with the name of your project, e.g. dwarfproject, mybot or mysite. Do NOT name it dwarf, though.) This will create the folder structure of your Django project. Now you can download Dwarf by going to your project directory (`cd project-name`) and issueing the following (use Git Bash for this if you're on Windows):
