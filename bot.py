@@ -172,9 +172,11 @@ async def on_command(command, ctx):
 async def on_message(message):
     if user_allowed(message):
         if core.user_is_registered(message.author):
-            member = core.get_member(message.author)
-            member.message_count += 1
-            member.save()
+            # TODO fix related bugs
+            # member = core.get_member(message.author)
+            # member.message_count += 1
+            # member.save()
+            pass
         await bot.process_commands(message)
 
 
