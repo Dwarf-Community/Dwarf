@@ -56,6 +56,7 @@ You now need to adjust the settings.py file (in `/project-name/project-name`) as
         'django.contrib.messages',
         'django.contrib.staticfiles',
         'dwarf.apps.DwarfConfig',
+        'rest_framework',
     ]
 ```
 - Register Dwarf's user model as the user model used for authentication:
@@ -81,6 +82,7 @@ from django.contrib import admin
 urlpatterns = [
     url(r'^admin/', admin.site.urls),
     url(r'^dwarf/', include('dwarf.urls')),
+    url(r'^api/', include('rest_framework.urls', namespace='rest_framework')),
 ]
 ```
 Take a closer look at `r'^dwarf/'`. That is a so-called regular expression that defines where Dwarf should be made accessible. If you want to host Dwarf at `discord/`, your `urlpatterns` would look like this:
@@ -91,6 +93,7 @@ from django.contrib import admin
 urlpatterns = [
     url(r'^admin/', admin.site.urls),
     url(r'^discord/', include('dwarf.urls')),
+    url(r'^api/', include('rest_framework.urls', namespace='rest_framework')),
 ]
 ```
 If you want to host it at the root, your `urlpatterns` would look as follows:
@@ -101,6 +104,7 @@ from django.contrib import admin
 urlpatterns = [
     url(r'^admin/', admin.site.urls),
     url(r'^', include('dwarf.urls')),
+    url(r'^api/', include('rest_framework.urls', namespace='rest_framework')),
 ]
 ```
 Keep in mind that Django checks these `urlpatterns` from top to bottom, so if you'd put the second urlpattern above the first in the above example, you wouldn't be able to access anything via the web interface but Dwarf.
