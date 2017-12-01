@@ -167,21 +167,24 @@ class BaseAPI:
     def delete_token(self):
         self.cache.delete('token')
     
-    def install_extension(self, extension):
-        """Installs an extension via the Dwarf Extension Index.
+    def install_extension(self, extension, repository=None):
+        """Installs an extension via the Dwarf Extension Index or directly from a repository.
         
         Parameters
         ----------
         extension : str
             The name of the extension that should be installed.
+        repository : Optional[str]
+            The Git repository URL of the extension.
         """
         
         extensions = self.get_extensions()
         if extension in extensions:
             raise ExtensionAlreadyInstalled(extension)
-        
-        self.download_extension(extension)
-        
+        if repository is not None:
+            self.download_extension(extension)
+        else:
+            self.download_extension(extension, repository)
         module_obj = importlib.import_module('dwarf.' + extension)
         # libraries and packages the extension requires
         requirements = module_obj.requirements if hasattr(module_obj, 'requirements') else []
@@ -310,11 +313,12 @@ class BaseAPI:
             return self.set_dependencies(_dependencies)
     
     @staticmethod
-    def download_extension(extension):
-        try:
-            repository = dwarf.extensions.index[extension]['repository']
-        except KeyError:
-            raise ExtensionNotInIndex(extension)
+    def download_extension(extension, repository=None):
+        if repository is None:
+            try:
+                repository = dwarf.extensions.index[extension]['repository']
+            except KeyError:
+                raise ExtensionNotInIndex(extension)
 
         subprocess.run(['git', 'clone', repository, 'dwarf/' + extension])
 

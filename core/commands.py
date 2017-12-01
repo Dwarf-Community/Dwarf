@@ -73,11 +73,27 @@ class Core:
         failed_to_install_extensions = []
         failed_to_install_packages = []
         
+        def is_extension_name_check(extension_name):
+                if isinstance(discord.Message, extension_name):
+                    extension_name = extension_name.content
+                return ' ' in extension_name
+        
         async def _install(extension):
+            repository = None
+            if extension.startswith('https://'):
+                repository = extension
+                await bot.say(strings.specify_extension_name)
+                extension = await bot.wait_for_message(author=ctx.message.author,
+                    channel=ctx.message.channel,
+                    check=is_extension_name_check,
+                    timeout=60)
+                if extension is None:
+                    await bot.say(strings.skipping_this_extension)
+                    return False
             await bot.say("Installing '**" + extension + "**'...")
             await bot.type()
             try:
-                unsatisfied = base.install_extension(extension)
+                unsatisfied = base.install_extension(extension, repository)
             except ExtensionAlreadyInstalled:
                 await bot.say("The extension '**" + extension + "**' is already installed.")
                 failed_to_install_extensions.append(extension)
