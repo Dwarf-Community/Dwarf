@@ -56,6 +56,7 @@ You now need to adjust the settings.py file (in `/project-name/project-name`) as
         'django.contrib.messages',
         'django.contrib.staticfiles',
         'dwarf.apps.DwarfConfig',
+        'rest_framework',
     ]
 ```
 - Register Dwarf's user model as the user model used for authentication:
@@ -80,6 +81,7 @@ from django.contrib import admin
 
 urlpatterns = [
     url(r'^admin/', admin.site.urls),
+    url(r'^api/', include('rest_framework.urls', namespace='rest_framework')),
     url(r'^dwarf/', include('dwarf.urls')),
 ]
 ```
@@ -90,6 +92,7 @@ from django.contrib import admin
 
 urlpatterns = [
     url(r'^admin/', admin.site.urls),
+    url(r'^api/', include('rest_framework.urls', namespace='rest_framework')),
     url(r'^discord/', include('dwarf.urls')),
 ]
 ```
@@ -100,6 +103,7 @@ from django.contrib import admin
 
 urlpatterns = [
     url(r'^admin/', admin.site.urls),
+    url(r'^api/', include('rest_framework.urls', namespace='rest_framework')),
     url(r'^', include('dwarf.urls')),
 ]
 ```
