@@ -214,6 +214,53 @@ class BaseAPI:
         self.register_extension(extension)
         self.set_dependencies(dependencies, extension)
     
+    def update_extension(self, extension):
+        """Updates an extension via the Dwarf Extension Index.
+        
+        Parameters
+        ----------
+        extension : str
+            The name of the extension that should be updated.
+        """
+        
+        extensions = self.get_extensions()
+        if extension not in extensions:
+            raise ExtensionNotFound(extension)
+        
+        self.download_extension_update(extension)
+        
+        module_obj = importlib.import_module('dwarf.' + extension)
+        # libraries and packages the extension requires
+        requirements = module_obj.requirements if hasattr(module_obj, 'requirements') else []
+        # other extensions the extension requires
+        dependencies = module_obj.dependencies if hasattr(module_obj, 'dependencies') else []
+        
+        failed_to_import = {
+            'packages': [],
+            'extensions': [],
+        }
+        
+        for requirement in requirements:
+            try:
+                importlib.import_module(requirement)
+            except ImportError:
+                failed_to_import['packages'].append(requirement)
+        
+        for dependency in dependencies:
+            try:
+                importlib.import_module(dependency)
+            except ImportError:
+                failed_to_import['extensions'].append(dependency)
+        
+        if failed_to_import['packages'] or failed_to_import['extensions']:
+            self.delete_extension(extension)
+            self.unregister_extension(extension)
+            return failed_to_import
+        
+        self.sync_database()
+        self.register_extension(extension)
+        self.set_dependencies(dependencies, extension)
+    
     def uninstall_extension(self, extension):
         """Uninstalls an installed extension.
         Raises :exception:`ExtensionNotFound`
@@ -261,7 +308,7 @@ class BaseAPI:
             _dependencies = self.get_dependencies()
             _dependencies[extension] = dependencies
             return self.set_dependencies(_dependencies)
-
+    
     @staticmethod
     def download_extension(extension):
         try:
@@ -270,6 +317,15 @@ class BaseAPI:
             raise ExtensionNotInIndex(extension)
 
         subprocess.run(['git', 'clone', repository, 'dwarf/' + extension])
+
+    @staticmethod
+    def download_extension_update(extension):
+        try:
+            repository = dwarf.extensions.index[extension]['repository']
+        except KeyError:
+            raise ExtensionNotInIndex(extension)
+
+        subprocess.run(['git', 'pull', repository, 'dwarf/' + extension])
 
     @staticmethod
     def delete_extension(extension):
@@ -330,7 +386,7 @@ class BaseAPI:
             The name of the package to install.
         """
         
-        return pip.main(['install', package])
+        return pip.main(['install', '--upgrade', package])
     
     @staticmethod
     def get_dwarf_version():

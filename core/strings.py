@@ -10,6 +10,8 @@ info = str("This is an instance of Dwarf, the "
 
 failed_to_install = "Failed to install '**{}**'."
 
+failed_to_update = "Failed to update '**{}**'."
+
 unsatisfied_requirements = "Missing required packages:"
 
 unsatisfied_dependencies = "Missing required extensions:"
