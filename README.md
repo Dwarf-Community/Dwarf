@@ -81,8 +81,8 @@ from django.contrib import admin
 
 urlpatterns = [
     url(r'^admin/', admin.site.urls),
-    url(r'^dwarf/', include('dwarf.urls')),
     url(r'^api/', include('rest_framework.urls', namespace='rest_framework')),
+    url(r'^dwarf/', include('dwarf.urls')),
 ]
 ```
 Take a closer look at `r'^dwarf/'`. That is a so-called regular expression that defines where Dwarf should be made accessible. If you want to host Dwarf at `discord/`, your `urlpatterns` would look like this:
@@ -92,8 +92,8 @@ from django.contrib import admin
 
 urlpatterns = [
     url(r'^admin/', admin.site.urls),
-    url(r'^discord/', include('dwarf.urls')),
     url(r'^api/', include('rest_framework.urls', namespace='rest_framework')),
+    url(r'^discord/', include('dwarf.urls')),
 ]
 ```
 If you want to host it at the root, your `urlpatterns` would look as follows:
@@ -103,8 +103,8 @@ from django.contrib import admin
 
 urlpatterns = [
     url(r'^admin/', admin.site.urls),
-    url(r'^', include('dwarf.urls')),
     url(r'^api/', include('rest_framework.urls', namespace='rest_framework')),
+    url(r'^', include('dwarf.urls')),
 ]
 ```
 Keep in mind that Django checks these `urlpatterns` from top to bottom, so if you'd put the second urlpattern above the first in the above example, you wouldn't be able to access anything via the web interface but Dwarf.

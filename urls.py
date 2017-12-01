@@ -27,3 +27,4 @@ urlpatterns = [
 extensions = base.get_extensions()
 for extension in extensions:
     urlpatterns.append(url(r'^' + extension + r'/', include('dwarf.' + extension + 'urls')))
+
