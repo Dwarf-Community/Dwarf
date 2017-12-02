@@ -94,5 +94,3 @@ class LogDetail(generics.RetrieveUpdateDestroyAPIView):
     """Allows GET, PUT, DELETE and POST operations on each log"""
     queryset = Log.objects.all()
     serializer_class = LogSerializer
-
-    
