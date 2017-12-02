@@ -25,7 +25,7 @@ class GuildDetail(generics.RetrieveUpdateDestroyAPIView):
 
 
 class ChannelList(generics.ListCreateAPIView):
-     """Lists all Channels"""
+    """Lists all Channels"""
     queryset = Channel.objects.all()
     serializer_class = ChannelSerializer
 
@@ -37,7 +37,7 @@ class ChannelDetail(generics.RetrieveUpdateDestroyAPIView):
 
 
 class RoleList(generics.ListCreateAPIView):
-     """Lists all Roles"""
+    """Lists all Roles"""
     queryset = Role.objects.all()
     serializer_class = RoleSerializer
 
@@ -49,7 +49,7 @@ class RoleDetail(generics.RetrieveUpdateDestroyAPIView):
 
 
 class MemberList(generics.ListCreateAPIView):
-     """Lists all Members"""
+    """Lists all Members"""
     queryset = Member.objects.all()
     serializer_class = MemberSerializer
 
@@ -61,7 +61,7 @@ class MemberDetail(generics.RetrieveUpdateDestroyAPIView):
 
 
 class MessageList(generics.ListCreateAPIView):
-     """Lists all Messages"""
+    """Lists all Messages"""
     queryset = Message.objects.all()
     serializer_class = MessageSerializer
 
@@ -73,7 +73,7 @@ class MessageDetail(generics.RetrieveUpdateDestroyAPIView):
 
 
 class StringList(generics.ListCreateAPIView):
-     """Lists all Strings"""
+    """Lists all Strings"""
     queryset = String.objects.all()
     serializer_class = StringSerializer
 
@@ -85,7 +85,7 @@ class StringDetail(generics.RetrieveUpdateDestroyAPIView):
 
 
 class LogList(generics.ListCreateAPIView):
-     """Lists all Logs"""
+    """Lists all Logs"""
     queryset = Log.objects.all()
     serializer_class = LogSerializer
 
