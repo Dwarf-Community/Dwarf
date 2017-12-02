@@ -74,7 +74,7 @@ class Core:
         failed_to_install_packages = []
         
         def is_extension_name_check(extension_name):
-                if isinstance(discord.Message, extension_name):
+                if isinstance(extension_name, discord.Message):
                     extension_name = extension_name.content
                 return ' ' in extension_name
         

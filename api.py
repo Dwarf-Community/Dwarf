@@ -181,10 +181,7 @@ class BaseAPI:
         extensions = self.get_extensions()
         if extension in extensions:
             raise ExtensionAlreadyInstalled(extension)
-        if repository is not None:
-            self.download_extension(extension)
-        else:
-            self.download_extension(extension, repository)
+        self.download_extension(extension, repository)
         module_obj = importlib.import_module('dwarf.' + extension)
         # libraries and packages the extension requires
         requirements = module_obj.requirements if hasattr(module_obj, 'requirements') else []
