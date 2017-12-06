@@ -1,0 +1,4 @@
+django
+discord.py
+django-redis-cache
+psycopg2
