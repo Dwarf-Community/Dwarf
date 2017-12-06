@@ -1,121 +1,19 @@
-# Dwarf: Discord Web Application Rendering Framework
+# Dwarf — Discord Web Application Rendering Framework
 
-### Dwarf - Documentation
+Dwarf is a framework for developers designed to make it easy to enhance Discord while staying out of your way.
 
-I'll have to write everything down ASAP, but for now, check the Django documentation about models, discord.py's documentation, dwarf.api.management and the following:
-`from dwarf.api import CacheAPI`
-The CacheAPI allows you to store key/value pairs in the Redis database. Syntax:
-`CacheAPI.set(key='dwarf_your_key_here', value=12345)`
-The value can be of any type. After you've set it, you can get it from the Redis database as follows:
-`data = CacheAPI.get(key='dwarf_your_key_here')`
-Have fun! If you need help, drop by [our Discord server](https://discord.gg/rAHwvyE). If you write an extension and want it to be installable for others, add it to the [Dwarf Extension Index](https://github.com/Dwarf-Community/Dwarf-Extensions).
+The straightforward **extension system** allows you to create or download extensions that provide useful additional functionality, such as economy, music, basic RPG elements and more. Extensions can be submitted to [DwEI, the Dwarf Extension Index](https://github.com/Dwarf-Community/Dwarf-Extensions), from where they are easily accessible to everybody. Dwarf and its extensions build the foundation for your app, so you can **focus on writing the actual app without reinventing the wheel**.
 
-### Dwarf - Quick Install Guide
+Dwarf was built on top of [Django](https://www.djangoproject.com/start/overview/) and [discord.py](https://github.com/Rapptz/discord.py) to get your Discord web app from concept to reality as quickly as possible. It **does a lot of the heavy lifting for you**, such as database connectivity, caching, user authentication and bot sharding. Every Dwarf app consists of a Discord bot, a web frontend and an API. Dwarf uses [Redis](https://redis.io/topics/introduction) to allow instant communication between the frontend and the backend via a straightforward cache API layer.
 
-First off, you need Python 3.5 or above, PostgreSQL (optional, but recommended) and Redis (the Windows port works, too). After you installed the requirements (if necessary), start a terminal session (cmd.exe on Windows) and install virtualenv:
-`pip3 install virtualenv`
-Once you have that, create a virtual environment as follows:
-`virtualenv path/to/where/you/want/to/create/your/virtualenv`
-Any path will do; I'd suggest `/djangoenv`. After you've created the virtualenv, you'll need to enter/activate it. On Linux, that would be:
-`source /djangoenv/bin/activate`
-And on Windows:
-`/djangoenv/Scripts/activate.bat`
-(Replace /djangoenv with the path to your virtual environment.) You should now see the name of your virtualenv in brackets (e.g. `(djangoenv)`). If you do, you can now start installing the requirements:
-`pip install django redis django-redis-cache psycopg2 discord.py`
-After you've done that, start a new Django project in a directory of your choice as follows:
-`django-admin startproject project-name`
-(Replace project-name with the name of your project, e.g. dwarfproject, mybot or mysite. Do NOT name it dwarf, though.) This will create the folder structure of your Django project. Now you can download Dwarf by going to your project directory (`cd project-name`) and issueing the following (use Git Bash for this if you're on Windows):
-`git clone https://github.com/Dwarf-Community/dwarf`
-`cd dwarf`
-`git clone https://github.com/Dwarf-Community/Dwarf-Extensions extensions`
-`git clone https://github.com/Dwarf-Community/Dwarf-Docs docs`
-You now need to adjust the settings.py file (in `/project-name/project-name`) as follows:
-- Set the database backend to PostgreSQL (recommended):
-    Example:
-```python
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': 'databasename',
-            'USER': 'someuser',
-            'PASSWORD': 'S3kr1t!',
-            'HOST': 'localhost',
-            'PORT': '5432',
-            'CONN_MAX_AGE': 30,  # in seconds
-        }
-    }
-```
-- Add Dwarf to your installed apps:
-    Example:
-```python
-    INSTALLED_APPS = [
-        'django.contrib.admin',
-        'django.contrib.auth',
-        'django.contrib.contenttypes',
-        'django.contrib.sessions',
-        'django.contrib.messages',
-        'django.contrib.staticfiles',
-        'dwarf.apps.DwarfConfig',
-        'rest_framework',
-    ]
-```
-- Register Dwarf's user model as the user model used for authentication:
-```python
-    AUTH_USER_MODEL = 'dwarf.User'
-```
-- You also have to add your Redis credentials to settings.py (Redis ia currently the only cache backend available for Dwarf):
-```python
-DWARF_CACHE_BACKEND = {
-    'redis': {
-        'HOST': 'localhost',
-        'PORT': 6379,
-        'PASSWORD': 'S3kr1t!',
-        'DB': 0,
-    }
-}
-```
-Now that you've done that, you need to decide at which URL you want to make Dwarf's web front-end available. Open `/project-name/project-name/urls.py` and make it look something like this:
-```python
-from django.conf.urls import url, include
-from django.contrib import admin
+**Every part of Dwarf is extendable**, meaning that every extension can add new ORM models, REST API endpoints, frontend views, elements to views of other extensions, bot commands, cache keys for other extensions to listen to, or something completely new. Your imagination is the limit!
 
-urlpatterns = [
-    url(r'^admin/', admin.site.urls),
-    url(r'^api/', include('rest_framework.urls', namespace='rest_framework')),
-    url(r'^dwarf/', include('dwarf.urls')),
-]
-```
-Take a closer look at `r'^dwarf/'`. That is a so-called regular expression that defines where Dwarf should be made accessible. If you want to host Dwarf at `discord/`, your `urlpatterns` would look like this:
-```python
-from django.conf.urls import url, include
-from django.contrib import admin
+## Getting Started
 
-urlpatterns = [
-    url(r'^admin/', admin.site.urls),
-    url(r'^api/', include('rest_framework.urls', namespace='rest_framework')),
-    url(r'^discord/', include('dwarf.urls')),
-]
-```
-If you want to host it at the root, your `urlpatterns` would look as follows:
-```python
-from django.conf.urls import url, include
-from django.contrib import admin
+Want to spin up your own Dwarf instance to develop an app or extension? [This wiki article](https://github.com/Dwarf-Community/Dwarf/wiki/Getting-started) guides you through the installation process.
 
-urlpatterns = [
-    url(r'^admin/', admin.site.urls),
-    url(r'^api/', include('rest_framework.urls', namespace='rest_framework')),
-    url(r'^', include('dwarf.urls')),
-]
-```
-Keep in mind that Django checks these `urlpatterns` from top to bottom, so if you'd put the second urlpattern above the first in the above example, you wouldn't be able to access anything via the web interface but Dwarf.
+Extensions are themselves very powerful. If you want to build an extension and maybe even submit it to DwEI, check out [these handy instructions](https://github.com/Dwarf-Community/Dwarf/wiki/Create-a-new-Dwarf-extension) on how to start developing a new extension.
 
-Finally, you have to let Django setup the database for you:
-`python manage.py makemigrations`
-`python manage.py makemigrations dwarf`
-`python manage.py migrate`
+### Let's forge some great apps that make Discord even more awesome!
 
-That should be it for now. There will be more things to install as soon as the web front-end part will be released, such as nginx and gunicorn, so keep an eye at [our Discord server](https://discord.gg/rAHwvyE)! :)
-
-You can start the bot by going to your Django project's directory and issueing the following command (after you activated your virtualenv as described above):
-`python manage.py startbot`
-Have fun! If you need help, drop by the Discord server and we'll try to help you. ^-^
+Still have some questions? Need some help? Want to check out what others have built? [Join us on Discord!](https://discord.gg/rAHwvyE)
