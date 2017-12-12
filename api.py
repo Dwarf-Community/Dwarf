@@ -40,13 +40,15 @@ class CacheAPI:
     Attributes
     -----------
     backend
-        The cache backend the :class:`Cache` connects to.
+        The cache backend the :class:`CacheAPI` connects to.
+    app : Optional[str]
+        If specified, the :class:`CacheAPI` stores data in that app's own storage area.
     extension : Optional[str]
-        If specified, the :class:`Cache` stores data in that
+        If specified, the :class:`CacheAPI` stores data in that
         extension's own storage area.
     """
     
-    def __init__(self, extension=""):
+    def __init__(self, app='dwarf', extension=''):
         self.backend = redis
         self.extension = extension
     
@@ -62,8 +64,8 @@ class CacheAPI:
         """
         
         if not self.extension:
-            return self.backend.get(key='_'.join(['dwarf', key]), default=default)
-        return self.backend.get(key='_'.join(['dwarf', self.extension, key]), default=default)
+            return self.backend.get(key='_'.join([self.app, key]), default=default)
+        return self.backend.get(key='_'.join([self.app, self.extension, key]), default=default)
     
     def set(self, key, value, timeout=None):
         """Sets a key in the cache.
@@ -75,8 +77,8 @@ class CacheAPI:
         """
         
         if not self.extension:
-            return self.backend.set(key='_'.join(['dwarf', key]), value=value, timeout=timeout)
-        return self.backend.set(key='_'.join(['dwarf', self.extension, key]), value=value, timeout=timeout)
+            return self.backend.set(key='_'.join([self.app, key]), value=value, timeout=timeout)
+        return self.backend.set(key='_'.join([self.app, self.extension, key]), value=value, timeout=timeout)
     
     def get_many(self, keys):
         """Retrieves an iterable of keys' values from the cache.
@@ -92,10 +94,10 @@ class CacheAPI:
         actual_keys = []
         if not self.extension:
             for key in keys:
-                actual_keys.append('_'.join(['dwarf', key]))
+                actual_keys.append('_'.join([self.app, key]))
         else:
             for key in keys:
-                actual_keys.append('_'.join(['dwarf', self.extension, key]))
+                actual_keys.append('_'.join([self.app, self.extension, key]))
         return list(self.backend.get_many(keys=actual_keys).values())
     
     def set_many(self, keys, values, timeout=None):
@@ -115,10 +117,10 @@ class CacheAPI:
         actual_keys = []
         if not self.extension:
             for key in keys:
-                actual_keys.append('_'.join(['dwarf', key]))
+                actual_keys.append('_'.join([self.app, key]))
         else:
             for key in keys:
-                actual_keys.append('_'.join(['dwarf', self.extension, key]))
+                actual_keys.append('_'.join(self.app, self.extension, key]))
         return list(self.backend.set_many(data=dict(zip(actual_keys, values)), timeout=timeout).values())
     
     def delete(self, key):
@@ -131,8 +133,8 @@ class CacheAPI:
         """
         
         if not self.extension:
-            return self.backend.delete(key='_'.join(['dwarf', key]))
-        return self.backend.delete(key='_'.join(['dwarf', self.extension, key]))
+            return self.backend.delete(key='_'.join([self.app, key]))
+        return self.backend.delete(key='_'.join([self.app, self.extension, key]))
 
 
 class BaseAPI:
