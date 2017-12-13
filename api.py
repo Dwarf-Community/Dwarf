@@ -50,6 +50,7 @@ class CacheAPI:
     
     def __init__(self, app='dwarf', extension=''):
         self.backend = redis
+        self.app = app
         self.extension = extension
     
     def get(self, key, default=None):
@@ -120,7 +121,7 @@ class CacheAPI:
                 actual_keys.append('_'.join([self.app, key]))
         else:
             for key in keys:
-                actual_keys.append('_'.join(self.app, self.extension, key]))
+                actual_keys.append('_'.join([self.app, self.extension, key]))
         return list(self.backend.set_many(data=dict(zip(actual_keys, values)), timeout=timeout).values())
     
     def delete(self, key):
