@@ -1,6 +1,7 @@
 from django.core import management
 from django.conf import settings
 from redis_cache import RedisCache
+import aioredis
 
 import dwarf.extensions
 from . import version
@@ -13,9 +14,9 @@ import importlib
 import pip
 
 
-dwarf_cache = settings.DWARF_CACHE_BACKEND['redis']
+cache_config = settings.DWARF_CACHE_BACKEND['redis']
 
-redis = RedisCache('{}:{}'.format(dwarf_cache['HOST'], dwarf_cache['PORT']), {'password': dwarf_cache['PASSWORD']})
+redis = RedisCache('{}:{}'.format(cache_config['HOST'], cache_config['PORT']), {'password': cache_config['PASSWORD']})
 
 
 class ExtensionAlreadyInstalled(Exception):
@@ -35,7 +36,13 @@ class CacheAPI:
 
     Parameters
     ----------
+    app : Optional[str]
+        If specified, the :class:`CacheAPI` stores data in that app's own storage area.
     extension : Optional[str]
+        If specified, the :class:`CacheAPI` stores data in that
+        extension's own storage area.
+    bot
+        The bot used to dispatch subscription events.
 
     Attributes
     -----------
@@ -46,12 +53,22 @@ class CacheAPI:
     extension : Optional[str]
         If specified, the :class:`CacheAPI` stores data in that
         extension's own storage area.
+    bot
+        The bot used to dispatch subscription events.
+    async_backend
+        The asynchronous cache backend the :class:`CacheAPI` connects to.
     """
     
-    def __init__(self, app='dwarf', extension=''):
+    def __init__(self, app='dwarf', extension='', bot=None):
         self.backend = redis
         self.app = app
         self.extension = extension
+        self.bot = bot
+    
+    async def enable_async(self, loop):
+        self.async_backend = await aioredis.create_redis_pool(
+            'redis://{}:{}'.format(cache_config['HOST'], cache_config['PORT']),
+            db=cache_config['DB'], password='cache_config['PASSWORD'], loop=loop)
     
     def get(self, key, default=None):
         """Retrieves a key's value from the cache.
@@ -136,6 +153,29 @@ class CacheAPI:
         if not self.extension:
             return self.backend.delete(key='_'.join([self.app, key]))
         return self.backend.delete(key='_'.join([self.app, self.extension, key]))
+    
+    async def subscribe(self, channel):
+        connection = await self.async_backend.acquire()
+        try:
+            await connection.execute_pubsub('subscribe', channel)
+            channel = connection.pubsub_channels[channel]
+            while (await channel.wait_message()):
+                message = await channel.get(encoding='utf-8')
+            self.bot.dispatch(channel + '_message', message)
+        finally:
+            self.async_backend.release(connection)
+    
+    async def publish(self, channel, message):
+        connection = await self.async_backend.acquire()
+        try:
+            while True:
+                subs = await connection.pubsub_numsub('channel:1')
+                if subs[b'channel:1'] == 1:
+                    break
+                await asyncio.sleep(0, loop=async_backend._loop)
+            await connection.publish(channel, message)
+        finally:
+            self.async_backend.release(connection)
 
 
 class BaseAPI:
