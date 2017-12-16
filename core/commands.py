@@ -594,7 +594,7 @@ class Core:
         """Adds a prefix to the bot."""
         
         if prefix.startswith('"') and prefix.endswith('"'):
-            prefix = prefix[1:len(prefix)-1]
+            prefix = prefix[1:len(prefix) - 1]
         
         try:
             core.add_prefix(prefix)
@@ -610,7 +610,7 @@ class Core:
         """Removes a prefix from the bot."""
         
         if prefix.startswith('"') and prefix.endswith('"'):
-            prefix = prefix[1:len(prefix)-1]
+            prefix = prefix[1:len(prefix) - 1]
         
         try:
             core.remove_prefix(prefix)
@@ -627,7 +627,7 @@ class Core:
         prefixes = core.get_prefixes()
         if len(prefixes) > 1:
             await self.bot.say("My prefixes are: '**" + "**', '**".join(prefixes) + "**'")
-        else:  
+        else:
             await self.bot.say("My prefix is '**" + prefixes[0] + "**'.")
 
     @commands.command(pass_context=True)
