@@ -309,6 +309,7 @@ class Core:
             completed_message += "Reboot Dwarf for changes to take effect."
         
         await bot.say(completed_message)
+
     @commands.command(pass_context=True)
     async def uninstall(self, ctx, *, extensions):
         """Uninstalls extensions."""

@@ -22,8 +22,10 @@ redis = RedisCache('{}:{}'.format(cache_config['HOST'], cache_config['PORT']), {
 class ExtensionAlreadyInstalled(Exception):
     pass
 
+
 class ExtensionNotInIndex(Exception):
     pass
+
 
 class ExtensionNotFound(Exception):
     pass
