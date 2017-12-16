@@ -5,7 +5,7 @@ import aioredis
 
 import dwarf.extensions
 from . import version
-
+ 
 import subprocess
 import shutil
 import os
@@ -55,20 +55,32 @@ class CacheAPI:
         extension's own storage area.
     bot
         The bot used to dispatch subscription events.
-    async_backend
-        The asynchronous cache backend the :class:`CacheAPI` connects to.
     """
     
-    def __init__(self, app='dwarf', extension='', bot=None):
+    def __init__(self, app='dwarf', extension='', bot=None, loop=None):
         self.backend = redis
         self.app = app
         self.extension = extension
         self.bot = bot
+        if self.bot is not None and loop is None:
+            self.loop = bot.loop
+        else:
+            self.loop = loop
     
-    async def enable_async(self, loop):
-        self.async_backend = await aioredis.create_redis_pool(
+    async def get_async_redis(self, loop=None):
+        """Creates an asynchronous Redis connection.
+        
+        Parameters
+        ----------
+        loop = Optional[asyncio.AbstractEventLoop]
+            The loop used for the asynchronous Redis connection.
+        """
+        
+        if self.loop is not None and loop is None:
+            loop = self.loop
+        return await aioredis.create_redis(
             'redis://{}:{}'.format(cache_config['HOST'], cache_config['PORT']),
-            db=cache_config['DB'], password='cache_config['PASSWORD'], loop=loop)
+            db=cache_config['DB'], password=cache_config['PASSWORD'], loop=loop)
     
     def get(self, key, default=None):
         """Retrieves a key's value from the cache.
@@ -82,8 +94,8 @@ class CacheAPI:
         """
         
         if not self.extension:
-            return self.backend.get(key='_'.join([self.app, key]), default=default)
-        return self.backend.get(key='_'.join([self.app, self.extension, key]), default=default)
+            return self.backend.get(key='_'.join((self.app, key)), default=default)
+        return self.backend.get(key='_'.join((self.app, self.extension, key)), default=default)
     
     def set(self, key, value, timeout=None):
         """Sets a key in the cache.
@@ -95,8 +107,8 @@ class CacheAPI:
         """
         
         if not self.extension:
-            return self.backend.set(key='_'.join([self.app, key]), value=value, timeout=timeout)
-        return self.backend.set(key='_'.join([self.app, self.extension, key]), value=value, timeout=timeout)
+            return self.backend.set(key='_'.join((self.app, key)), value=value, timeout=timeout)
+        return self.backend.set(key='_'.join((self.app, self.extension, key)), value=value, timeout=timeout)
     
     def get_many(self, keys):
         """Retrieves an iterable of keys' values from the cache.
@@ -112,10 +124,10 @@ class CacheAPI:
         actual_keys = []
         if not self.extension:
             for key in keys:
-                actual_keys.append('_'.join([self.app, key]))
+                actual_keys.append('_'.join((self.app, key)))
         else:
             for key in keys:
-                actual_keys.append('_'.join([self.app, self.extension, key]))
+                actual_keys.append('_'.join((self.app, self.extension, key)))
         return list(self.backend.get_many(keys=actual_keys).values())
     
     def set_many(self, keys, values, timeout=None):
@@ -135,10 +147,10 @@ class CacheAPI:
         actual_keys = []
         if not self.extension:
             for key in keys:
-                actual_keys.append('_'.join([self.app, key]))
+                actual_keys.append('_'.join((self.app, key)))
         else:
             for key in keys:
-                actual_keys.append('_'.join([self.app, self.extension, key]))
+                actual_keys.append('_'.join((self.app, self.extension, key)))
         return list(self.backend.set_many(data=dict(zip(actual_keys, values)), timeout=timeout).values())
     
     def delete(self, key):
@@ -154,28 +166,57 @@ class CacheAPI:
             return self.backend.delete(key='_'.join([self.app, key]))
         return self.backend.delete(key='_'.join([self.app, self.extension, key]))
     
-    async def subscribe(self, channel):
-        connection = await self.async_backend.acquire()
-        try:
-            await connection.execute_pubsub('subscribe', channel)
-            channel = connection.pubsub_channels[channel]
-            while (await channel.wait_message()):
-                message = await channel.get(encoding='utf-8')
+    async def subscribe(self, channel, limit=None):
+        """Subscribes to a Redis Pub/Sub channel.
+        When a message is received on the channel, `self.bot` is used to
+        dispatch an event called `channel` + '_message' passing the message as a parameter.
+        All cogs can implement a coroutine method called
+        'on_' + `channel` + '_message' that will be executed when
+        a message is sent to the `channel`.
+        
+        Parameters
+        ----------
+        channel : str
+            The name of the channel to subscribe to.
+        limit : Optional[int]
+            The maximum number of times messages published to the channel will be read.
+        """
+        
+        redis = await self.get_async_redis()
+        channels = await redis.subscribe('channel:' + '_'.join((self.app, channel)))
+        actual_channel = channels[0]
+        while (await actual_channel.wait_message()):
+            message = await actual_channel.get(encoding='utf-8')
             self.bot.dispatch(channel + '_message', message)
-        finally:
-            self.async_backend.release(connection)
+            if limit is not None:
+                if not isinstance(int, limit):
+                    raise TypeError("limit must be of type int")
+                if not limit > 0:
+                    raise ValueError("limit must be greater than 0")
+                if limit == 1:
+                    break
+                else:
+                    limit -= 1
+                
+        await actual_channel.unsubscribe('channel:' + '_'.join((self.app, channel)))
+        
+        redis.close()
+        print("redis connection closed!")
     
     async def publish(self, channel, message):
-        connection = await self.async_backend.acquire()
-        try:
-            while True:
-                subs = await connection.pubsub_numsub('channel:1')
-                if subs[b'channel:1'] == 1:
-                    break
-                await asyncio.sleep(0, loop=async_backend._loop)
-            await connection.publish(channel, message)
-        finally:
-            self.async_backend.release(connection)
+        """Publishes a message to a Redis Pub/Sub channel.
+        
+        Parameters
+        ----------
+        channel : str
+            The name of the channel to publish to.
+        message
+            The message to publish.
+        """
+        
+        redis = await self.get_async_redis()
+        await redis.publish('channel:' + '_'.join((self.app, channel)), message)
+        redis.close()
 
 
 class BaseAPI:
