@@ -8,8 +8,6 @@ base = BaseAPI()
 
 
 router = DefaultRouter()
-
-
 router.register(r'guilds', views.GuildViewSet)
 router.register(r'channels', views.ChannelViewSet)
 router.register(r'roles', views.RoleViewSet)
@@ -27,4 +25,5 @@ urlpatterns = [
 # link 'extension/' URLs to the extension's URLConfs
 extensions = base.get_extensions()
 for extension in extensions:
-    urlpatterns.append(url(r'^' + extension + r'/', include('dwarf.' + extension + 'urls')))
+    urlpatterns.append(url(r'^' + extension + r'/',
+                           include('dwarf.' + extension + 'urls')))
