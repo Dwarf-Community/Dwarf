@@ -253,6 +253,21 @@ class BaseAPI:
     def delete_token(self):
         self.cache.delete('token')
     
+    def enable_restarting(self):
+        """Makes Dwarf restart whenever it is terminated until `disable_restarting` is called."""
+        
+        return self.cache.set('is_supposed_to_be_running', True)
+    
+    def disable_restarting(self):
+        """Prevents Dwarf from restarting for the rest of the current session."""
+        
+        return self.cache.set('is_supposed_to_be_running', False)
+    
+    def restarting_enabled(self):
+        """Checks if Dwarf should be restarted when terminated."""
+        
+        return self.cache.get('is_supposed_to_be_running', False)
+    
     def install_extension(self, extension, repository=None):
         """Installs an extension via the Dwarf Extension Index or directly from a repository.
         

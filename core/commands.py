@@ -190,10 +190,17 @@ class Core:
         if failed_to_install_packages:
             completed_message += "Failed to install packages:\n"
             completed_message += "**" + "**\n**".join(failed_to_install_packages) + "**\n"
-        if installed_extensions:
-            completed_message += "Reboot Dwarf for changes to take effect."
-        
         await bot.say(completed_message)
+        
+        if installed_extensions:
+            bot.say("Reboot Dwarf for changes to take effect.\n"
+                    "Would you like to restart now? (yes/no)")
+        answer = await bot.wait_for_message(author=ctx.message.author,
+                                   channel=ctx.message.channel,
+                                   check=is_boolean_answer,
+                                   timeout=60)
+        if answer is not None and answer_to_boolean(answer) is True:
+            await self.cache.publish('restart', 1)
 
     @commands.command(pass_context=True)
     async def update(self, ctx, *, extensions):
@@ -305,10 +312,17 @@ class Core:
         if failed_to_install_packages:
             completed_message += "Failed to install packages:\n"
             completed_message += "**" + "**\n**".join(failed_to_install_packages) + "**\n"
-        if updated_extensions:
-            completed_message += "Reboot Dwarf for changes to take effect."
-        
         await bot.say(completed_message)
+        
+        if updated_extensions:
+            bot.say("Reboot Dwarf for changes to take effect.\n"
+                    "Would you like to restart now? (yes/no)")
+        answer = await bot.wait_for_message(author=ctx.message.author,
+                                   channel=ctx.message.channel,
+                                   check=is_boolean_answer,
+                                   timeout=60)
+        if answer is not None and answer_to_boolean(answer) is True:
+            await self.cache.publish('restart', 1)
 
     @commands.command(pass_context=True)
     async def uninstall(self, ctx, *, extensions):
@@ -373,10 +387,17 @@ class Core:
         if failed_to_uninstall_extensions:
             completed_message += "Failed to uninstall extensions:\n"
             completed_message += "**" + "**\n**".join(failed_to_uninstall_extensions) + "**\n"
-        if uninstalled_extensions:
-            completed_message += "Reboot Dwarf for changes to take effect."
-        
         await bot.say(completed_message)
+        
+        if uninstalled_extensions:
+            bot.say("Reboot Dwarf for changes to take effect.\n"
+                    "Would you like to restart now? (yes/no)")
+        answer = await bot.wait_for_message(author=ctx.message.author,
+                                   channel=ctx.message.channel,
+                                   check=is_boolean_answer,
+                                   timeout=60)
+        if answer is not None and answer_to_boolean(answer) is True:
+            await self.cache.publish('restart', 1)
 
     @commands.group(name='set', pass_context=True)
     async def set(self, ctx):
@@ -641,7 +662,12 @@ class Core:
         await self.bot.say("Pong.\nTime: " + str(round((t2-t1)*1000)) + "ms")
 
     async def on_shutdown_message(self, message):
+        self.core.disable_restarting()
         print("Shutting down...")
+        await self.bot.logout()
+    
+    async def on_restart_message(self, allow_restart):
+        print("Restarting...")
         await self.bot.logout()
     
     @commands.command(pass_context=True)
@@ -650,8 +676,17 @@ class Core:
         """Shuts down Dwarf."""
         # [p]shutdown
         
-        await self.bot.say("I'll be right back!")
+        await self.bot.say("Goodbye!")
         await self.cache.publish('shutdown', 1)
+    
+    @commands.command(pass_context=True)
+    @permissions.owner()
+    async def restart(self):
+        """Restarts Dwarf."""
+        # [p]restart
+        
+        await self.bot.say("I'll be right back!")
+        await self.cache.publish('restart', 1)
 
     async def get_command(self, command):
         command = command.split()
@@ -783,4 +818,5 @@ class Core:
 def setup(bot):
     core_cog = Core(bot)
     bot.loop.create_task(core_cog.cache.subscribe('shutdown', 1))
+    bot.loop.create_task(core_cog.cache.subscribe('restart', 1))
     bot.add_cog(core_cog)

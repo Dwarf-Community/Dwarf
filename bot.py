@@ -48,7 +48,7 @@ def initial_config():
 
     entered_token = input("> ")
 
-    if len(entered_token) >= 50:  # Assuming token
+    if len(entered_token) >= 50:  # assuming token
         base.set_token(entered_token)
     else:
         print(strings.not_a_token)
@@ -97,6 +97,33 @@ set_logger()
 
 
 class Bot(commands.Bot):
+    def load_cogs(self):
+        def load_cog(cogname):
+            bot.load_extension('dwarf.' + cogname + '.commands')
+
+        load_cog('core')
+
+        core_cog = bot.get_cog('Core')
+        if core_cog is None:
+            raise ImportError("Could not find the Core cog.")
+
+        failed = []
+        cogs = base.get_extensions()
+        for cog in cogs:
+            try:
+                load_cog(cog)
+            except Exception as e:
+                print("{}: {}".format(e.__class__.__name__, str(e)))
+                failed.append(cog)
+
+        if failed:
+            print("\nFailed to load: ", end="")
+            for m in failed:
+                print(m + " ", end="")
+            print("\n")
+
+        return core_cog
+    
     async def wait_for_choice(self, author, channel, message, choices : iter, timeout=0):
         choice_format = "**{}**: {}"
         choice_messages = []
@@ -114,35 +141,6 @@ class Bot(commands.Bot):
 
 
 bot = Bot(command_prefix=core.get_prefixes(), description=__doc__, pm_help=core.is_help_private())
-
-
-def _load_cogs(bot):
-    def load_cog(cogname):
-        bot.load_extension('dwarf.' + cogname + '.commands')
-
-    load_cog('core')
-
-    management_cog = bot.get_cog('Core')
-    if management_cog is None:
-        raise ImportError("Could not find the Core cog.")
-
-    failed = []
-    cogs = base.get_extensions()
-    for cog in cogs:
-        try:
-            load_cog(cog)
-        except Exception as e:
-            print("{}: {}".format(e.__class__.__name__, str(e)))
-            logger.exception(e)
-            failed.append(cog)
-
-    if failed:
-        print("\nFailed to load: ", end="")
-        for m in failed:
-            print(m + " ", end="")
-        print("\n")
-
-    return management_cog
 
 
 def user_allowed(message):
@@ -278,10 +276,11 @@ async def on_ready():
     bot.oauth_url = url
     print(url)
     print("------")
+    core.enable_restarting()
 
 
-def main():
-    _load_cogs(bot)
+async def main():
+    bot.load_cogs()
     if core.get_prefixes():
         bot.command_prefix = list(core.get_prefixes())
     else:
@@ -293,9 +292,10 @@ def main():
     print(strings.official_server.format(strings.invite_link))
 
     try:
-        yield from bot.login(base.get_token())
+        await bot.login(base.get_token())
     except TypeError as e:
         print(e)
         sys.exit(strings.update_the_api)
 
-    yield from bot.connect()
+    await bot.connect()
+    bot.loop.close()
