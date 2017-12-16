@@ -3,7 +3,7 @@ from discord.ext import commands
 
 from dwarf import permissions
 from dwarf import formatting as f
-from dwarf.api import BaseAPI, ExtensionAlreadyInstalled, ExtensionNotFound, ExtensionNotInIndex
+from dwarf.api import CacheAPI, BaseAPI, ExtensionAlreadyInstalled, ExtensionNotFound, ExtensionNotInIndex
 from dwarf.bot import send_command_help
 from dwarf.utils import answer_to_boolean, is_boolean_answer
 from .api import CoreAPI, PrefixAlreadyExists, PrefixNotFound
@@ -27,6 +27,7 @@ class Core:
 
     def __init__(self, bot):
         self.bot = bot
+        self.cache = CacheAPI(bot=bot)
         self.session = aiohttp.ClientSession(loop=self.bot.loop)
 
     @commands.command(name='eval', pass_context=True, hidden=True)
@@ -34,7 +35,7 @@ class Core:
     async def evaluate(self, ctx, *, code):
         """Evaluates code.
         Modified function, originally made by Rapptz"""
-        # [p]evaluate <code>
+        # [p]eval <code>
 
         code = code.strip('` ')
         result = None
@@ -63,6 +64,7 @@ class Core:
     @commands.command(pass_context=True)
     async def install(self, ctx, *, extensions):
         """Installs an extension."""
+        # [p] install <extensions>
         
         bot = self.bot
         
@@ -196,6 +198,7 @@ class Core:
     @commands.command(pass_context=True)
     async def update(self, ctx, *, extensions):
         """Updates an extension."""
+        # [p]update <extensions>
         
         bot = self.bot
         
@@ -306,9 +309,11 @@ class Core:
             completed_message += "Reboot Dwarf for changes to take effect."
         
         await bot.say(completed_message)
+
     @commands.command(pass_context=True)
     async def uninstall(self, ctx, *, extensions):
-        """Uninstalls an extension."""
+        """Uninstalls extensions."""
+        # [p]uninstall <extensions>
         
         bot = self.bot
         
@@ -411,8 +416,8 @@ class Core:
     
     @commands.group(name='setup', pass_context=True)
     async def setup(self, ctx):
-        """Group of commands that remove items from some of the bot's settings."""
-        # [p]remove <subcommand>
+        """Group of commands that configure and prepare things."""
+        # [p]setup <subcommand>
         
         if ctx.invoked_subcommand is None:
             await send_command_help(ctx)
@@ -589,7 +594,7 @@ class Core:
         """Adds a prefix to the bot."""
         
         if prefix.startswith('"') and prefix.endswith('"'):
-            prefix = prefix[1:len(prefix)-1]
+            prefix = prefix[1:len(prefix) - 1]
         
         try:
             core.add_prefix(prefix)
@@ -605,7 +610,7 @@ class Core:
         """Removes a prefix from the bot."""
         
         if prefix.startswith('"') and prefix.endswith('"'):
-            prefix = prefix[1:len(prefix)-1]
+            prefix = prefix[1:len(prefix) - 1]
         
         try:
             core.remove_prefix(prefix)
@@ -622,7 +627,7 @@ class Core:
         prefixes = core.get_prefixes()
         if len(prefixes) > 1:
             await self.bot.say("My prefixes are: '**" + "**', '**".join(prefixes) + "**'")
-        else:  
+        else:
             await self.bot.say("My prefix is '**" + prefixes[0] + "**'.")
 
     @commands.command(pass_context=True)
@@ -635,15 +640,18 @@ class Core:
         t2 = time.perf_counter()
         await self.bot.say("Pong.\nTime: " + str(round((t2-t1)*1000)) + "ms")
 
+    async def on_shutdown_message(self, message):
+        print("Shutting down...")
+        await self.bot.logout()
+    
     @commands.command(pass_context=True)
     @permissions.owner()
     async def shutdown(self):
         """Shuts down Dwarf."""
         # [p]shutdown
-
         
         await self.bot.say("I'll be right back!")
-        await self.bot.logout()
+        await self.cache.publish('shutdown', 1)
 
     async def get_command(self, command):
         command = command.split()
@@ -753,10 +761,10 @@ class Core:
             current_server = None
         answers = ("yes", "y")
         await self.bot.say("Are you sure you want me "
-                           "to leave {}? (yes/no)".format(server.name))
+                           "to leave **{}**? (yes/no)".format(server.name))
         msg = await self.bot.wait_for_message(author=owner, timeout=15)
         if msg is None:
-            await self.bot.say("I guess not.")
+            await self.bot.say("I'll stay then.")
         elif msg.content.lower().strip() in answers:
             await self.bot.leave_server(server)
             if server != current_server:
@@ -773,4 +781,6 @@ class Core:
 
 
 def setup(bot):
-    bot.add_cog(Core(bot))
+    core_cog = Core(bot)
+    bot.loop.create_task(core_cog.cache.subscribe('shutdown', 1))
+    bot.add_cog(core_cog)

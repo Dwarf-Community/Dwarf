@@ -1,4 +1,7 @@
 django
-discord.py
+redis
+aioredis
+hiredis
 django-redis-cache
+djangorestframework
 psycopg2
