@@ -1,0 +1,7 @@
+django
+redis
+aioredis
+hiredis
+django-redis-cache
+djangorestframework
+psycopg2
