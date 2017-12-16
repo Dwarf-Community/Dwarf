@@ -1,7 +1,9 @@
 from django.shortcuts import render
 from dwarf.serializers import *
-from dwarf.models import *
-from rest_framework import generics
+from dwarf.models import User, Guild, Channel, Role, Member, Message, String, Log
+from dwarf.permissions import IsAdminThenAllPerms
+from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticated
+from rest_framework import viewsets
 
 
 def estimate_read_time(string):
@@ -12,85 +14,71 @@ def estimate_read_time(string):
     return read_time
 
 
-class GuildList(generics.ListCreateAPIView):
-    """Lists all Guilds"""
+class GuildViewSet(viewsets.ModelViewSet):
+    """
+    This viewset automatically provides `list`, `create`, `retrieve`,
+    `update` and `destroy` actions for the guild model.
+    """
     queryset = Guild.objects.all()
     serializer_class = GuildSerializer
+    permission_classes = ()
 
 
-class GuildDetail(generics.RetrieveUpdateDestroyAPIView):
-    """Allows GET, PUT, DELETE POST operations on each guild"""
-    queryset = Guild.objects.all()
-    serializer_class = GuildSerializer
-
-
-class ChannelList(generics.ListCreateAPIView):
-    """Lists all Channels"""
+class ChannelViewSet(viewsets.ModelViewSet):
+    """
+    This viewset automatically provides `list`, `create`, `retrieve`,
+    `update` and `destroy` actions for the channel model.
+    """
     queryset = Channel.objects.all()
     serializer_class = ChannelSerializer
+    permission_classes = ()
 
 
-class ChannelDetail(generics.RetrieveUpdateDestroyAPIView):
-    """Allows GET, PUT, DELETE POST operations on each channel"""
-    queryset = Channel.objects.all()
-    serializer_class = ChannelSerializer
-
-
-class RoleList(generics.ListCreateAPIView):
-    """Lists all Roles"""
+class RoleViewSet(viewsets.ModelViewSet):
+    """
+    This viewset automatically provides `list`, `create`, `retrieve`,
+    `update` and `destroy` actions for the role model.
+    """
     queryset = Role.objects.all()
     serializer_class = RoleSerializer
+    permission_classes = ()
 
 
-class RoleDetail(generics.RetrieveUpdateDestroyAPIView):
-    """Allows GET, PUT, DELETE POST operations on each role"""
-    queryset = Role.objects.all()
-    serializer_class = RoleSerializer
-
-
-class MemberList(generics.ListCreateAPIView):
-    """Lists all Members"""
+class MemberViewSet(viewsets.ModelViewSet):
+    """
+    This viewset automatically provides `list`, `create`, `retrieve`,
+    `update` and `destroy` actions for the member model.
+    """
     queryset = Member.objects.all()
     serializer_class = MemberSerializer
+    permission_classes = ()
 
 
-class MemberDetail(generics.RetrieveUpdateDestroyAPIView):
-    """Allows GET, PUT, DELETE POST operations on each member"""
-    queryset = Member.objects.all()
-    serializer_class = MemberSerializer
-
-
-class MessageList(generics.ListCreateAPIView):
-    """Lists all Messages"""
+class MessageViewSet(viewsets.ModelViewSet):
+    """
+    This viewset automatically provides `list`, `create`, `retrieve`,
+    `update` and `destroy` actions for the message model.
+    """
     queryset = Message.objects.all()
     serializer_class = MessageSerializer
+    permission_classes = ()
 
 
-class MessageDetail(generics.RetrieveUpdateDestroyAPIView):
-    """Allows GET, PUT, DELETE POST operations on each message"""
-    queryset = Message.objects.all()
-    serializer_class = MessageSerializer
-
-
-class StringList(generics.ListCreateAPIView):
-    """Lists all Strings"""
+class StringViewSet(viewsets.ModelViewSet):
+    """
+    This viewset automatically provides `list`, `create`, `retrieve`,
+    `update` and `destroy` actions for the string model.
+    """
     queryset = String.objects.all()
     serializer_class = StringSerializer
+    permission_classes = (IsAuthenticatedOrReadOnly, IsAdminThenAllPerms)
 
 
-class StringDetail(generics.RetrieveUpdateDestroyAPIView):
-    """Allows GET, PUT, DELETE POST operations on each string"""
-    queryset = String.objects.all()
-    serializer_class = StringSerializer
-
-
-class LogList(generics.ListCreateAPIView):
-    """Lists all Logs"""
+class LogViewSet(viewsets.ModelViewSet):
+    """
+    This viewset automatically provides `list`, `create`, `retrieve`,
+    `update` and `destroy` actions for the log model.
+    """
     queryset = Log.objects.all()
     serializer_class = LogSerializer
-
-
-class LogDetail(generics.RetrieveUpdateDestroyAPIView):
-    """Allows GET, PUT, DELETE and POST operations on each log"""
-    queryset = Log.objects.all()
-    serializer_class = LogSerializer
+    permission_classes = ()
