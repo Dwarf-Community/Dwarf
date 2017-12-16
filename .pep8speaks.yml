@@ -8,6 +8,9 @@ message:  # Customize the comment made by the bot
         footer: ""
     no_errors: "Good job, there are no PEP 8 issues in this pull request! :thumb_up:"
 
+scanner:
+    diff_only: True  # If True, errors caused by only the patch are shown
+
 pycodestyle:
     max-line-length: 79
     ignore:  # Errors and warnings to ignore
