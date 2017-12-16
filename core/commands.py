@@ -35,7 +35,7 @@ class Core:
     async def evaluate(self, ctx, *, code):
         """Evaluates code.
         Modified function, originally made by Rapptz"""
-        # [p]evaluate <code>
+        # [p]eval <code>
 
         code = code.strip('` ')
         result = None
@@ -639,8 +639,8 @@ class Core:
         t2 = time.perf_counter()
         await self.bot.say("Pong.\nTime: " + str(round((t2-t1)*1000)) + "ms")
 
-    @self.bot.event
     async def on_shutdown_message(self, message):
+        print("Shutting down...")
         await self.bot.logout()
     
     @commands.command(pass_context=True)
@@ -650,7 +650,7 @@ class Core:
         # [p]shutdown
         
         await self.bot.say("I'll be right back!")
-        await self.cache.publish('shutdown', True)
+        await self.cache.publish('shutdown', 1)
 
     async def get_command(self, command):
         command = command.split()
@@ -781,5 +781,5 @@ class Core:
 
 def setup(bot):
     core_cog = Core(bot)
-    core_cog.cache.subscribe('restart')
+    bot.loop.create_task(core_cog.cache.subscribe('shutdown', 1))
     bot.add_cog(core_cog)
