@@ -51,7 +51,7 @@ class Core:
         try:
             result = eval(code, global_vars, locals())
         except Exception as e:
-            await self.bot.say(f.block(type(e).__name__ + ': ' + str(e)), 'py')
+            await self.bot.say(f.block(type(e).__name__ + ': ' + str(e), 'py'))
             return
 
         if asyncio.iscoroutine(result):
