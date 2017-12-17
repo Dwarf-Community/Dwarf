@@ -13,6 +13,8 @@ from . import strings
 import sys
 import logging
 import logging.handlers
+import traceback
+import asyncio
 
 
 base = BaseAPI()
@@ -298,4 +300,42 @@ async def main():
         sys.exit(strings.update_the_api)
 
     await bot.connect()
-    bot.loop.close()
+    bot.loop.stop()
+
+def run():
+    loop = asyncio.new_event_loop()
+    while True:
+        global bot
+        if not is_configured():
+            initial_config()
+
+        error = False
+        error_message = ""
+        try:
+            loop.run_until_complete(main())
+        except discord.LoginFailure:
+            error = True
+            error_message = 'Invalid credentials'
+            choice = input(strings.invalid_credentials)
+            if choice.strip() == "reset":
+                base.delete_token()
+            else:
+                base.disable_restarting()
+        except KeyboardInterrupt:
+            loop.run_until_complete(bot.logout())
+            base.disable_restarting()
+        except Exception as e:
+            error = True
+            print(e)
+            error_message = traceback.format_exc()
+            loop.run_until_complete(bot.logout())
+            base.disable_restarting()
+        finally:
+            loop.close()
+            if error:
+                print(error_message)
+        if not base.restarting_enabled():
+            break
+        else:
+            loop = asyncio.new_event_loop()
+            bot = Bot(loop=loop, command_prefix=core.get_prefixes(), description=__doc__, pm_help=core.is_help_private())
