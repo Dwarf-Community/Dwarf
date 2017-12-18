@@ -31,7 +31,7 @@ class Core:
         self.cache = CacheAPI(bot=bot)
         self.session = aiohttp.ClientSession(loop=self.bot.loop)
 
-    async def on_command(self, command, ctx):
+    async def on_command_completion(self, command, ctx):
         author = ctx.message.author
         user = User.objects.get_or_create(id=author.id)[0]
         user_already_registered = User.objects.filter(id=author.id).exists()
@@ -749,6 +749,7 @@ class Core:
 
     async def on_logout(self):
         self.bot.cleanup()
+        del self.bot
 
     @commands.command(pass_context=True, no_pm=True)
     @permissions.owner()
