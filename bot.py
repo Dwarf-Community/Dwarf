@@ -248,3 +248,4 @@ def main(loop=None):
     finally:
         if error:
             print(error_message)
+        return bot

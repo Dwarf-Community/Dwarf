@@ -20,14 +20,22 @@ class CoreAPI:
     that are connected to the database backend.
     Also provides some basic management and settings functions.
     
+    Parameters
+    ----------
+    bot
+        The bot that will be restarted, shut down etc.
+    
     Attributes
     ----------
     cache : :class:`CacheAPI`
         The cache backend connection of the API.
+    bot
+        The bot that will be restarted, shut down etc.
     """
 
-    def __init__(self):
-        self.cache = CacheAPI()
+    def __init__(self, bot=None):
+        self.cache = CacheAPI(bot=bot)
+        self.bot = bot
 
     def enable_restarting(self):
         """Makes Dwarf restart whenever it is terminated until `disable_restarting` is called."""
@@ -43,6 +51,37 @@ class CoreAPI:
         """Checks if Dwarf should be restarted when terminated."""
         
         return self.cache.get('is_supposed_to_be_running', False)
+    
+    def get_restarted_from(self):
+        """Gets the ID of the channel the bot was restarted from."""
+        
+        return self.cache.get('restarted_from')
+    
+    def set_restarted_from(self, channel):
+        """Sets the channel the bot was restarted from."""
+        
+        if isinstance(channel, discord.Channel):
+            channel = channel.id
+        else:
+            channel = str(channel)
+        return self.cache.set('restarted_from', channel)
+    
+    def reset_restarted_from(self):
+        """Resets the channel the bot was restarted from."""
+        
+        self.cache.delete('restarted_from')
+    
+    async def restart(self, restarted_from=None):
+        """Triggers the bot to restart itself."""
+        
+        if restarted_from is not None:
+            self.set_restarted_from(restarted_from)
+        await self.cache.publish('restart')
+    
+    async def shutdown(self):
+        """Triggers the bot to shutdown."""
+        
+        await self.cache.publish('shutdown')
     
     def get_prefixes(self):
         """Returns a list of the bot's prefixes."""

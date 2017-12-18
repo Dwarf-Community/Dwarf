@@ -17,18 +17,14 @@ import time
 import os
 
 
-log = logging.getLogger('dwarf.core')
-
-base = BaseAPI()
-core = CoreAPI()
-
-
 class Core:
     """All commands that relate to management operations."""
 
     def __init__(self, bot):
         self.bot = bot
-        self.cache = CacheAPI(bot=bot)
+        self.core = CoreAPI(bot=bot)
+        self.base = BaseAPI(bot=bot)
+        self.log = logging.getLogger('dwarf.core.cog')
         self.session = aiohttp.ClientSession(loop=self.bot.loop)
 
     async def on_command_completion(self, command, ctx):
@@ -41,8 +37,14 @@ class Core:
             await self.bot.send_message(author, strings.user_registered.format(author.name))
 
     async def on_ready(self):
-        if core.get_owner_id() is None:
+        if self.core.get_owner_id() is None:
             await set_bot_owner()
+        
+        restarted_from = self.core.get_restarted_from()
+        if restarted_from is not None:
+            restarted_from = self.bot.get_channel(restarted_from)
+            await self.bot.send_message(restarted_from, "I'm back!")
+            self.core.reset_restarted_from()
         
         # clear terminal screen
         if os.name == 'nt':
@@ -57,18 +59,18 @@ class Core:
         print(strings.connected_to_servers.format(Guild.objects.count()))
         print(strings.connected_to_channels.format(Channel.objects.count()))
         print(strings.connected_to_users.format(User.objects.count()))
-        print("\n{} active cogs".format(len(base.get_extensions())))
+        print("\n{} active cogs".format(len(self.base.get_extensions())))
         prefix_label = strings.prefix_singular
-        if len(core.get_prefixes()) > 1:
+        if len(self.core.get_prefixes()) > 1:
             prefix_label = strings.prefix_plural
-        print("{}: {}\n".format(prefix_label, " ".join(list(core.get_prefixes()))))
+        print("{}: {}\n".format(prefix_label, " ".join(list(self.core.get_prefixes()))))
         print("------\n")
         print(strings.use_this_url)
         url = await get_oauth_url(self.bot)
         self.bot.oauth_url = url
         print(url)
         print("\n------")
-        core.enable_restarting()
+        self.core.enable_restarting()
 
     @commands.command(name='eval', pass_context=True, hidden=True)
     @permissions.owner()
@@ -135,7 +137,7 @@ class Core:
             await bot.say("Installing '**" + extension + "**'...")
             await bot.type()
             try:
-                unsatisfied = base.install_extension(extension, repository)
+                unsatisfied = self.base.install_extension(extension, repository)
             except ExtensionAlreadyInstalled:
                 await bot.say("The extension '**" + extension + "**' is already installed.")
                 failed_to_install_extensions.append(extension)
@@ -166,7 +168,7 @@ class Core:
                                                             timeout=60)
                         if answer is not None and answer_to_boolean(answer) is True:
                             for package in unsatisfied['packages']:
-                                return_code = base.install_package(package)
+                                return_code = self.base.install_package(package)
                                 if return_code is 0:
                                     unsatisfied['packages'].remove(package)
                                     await bot.say("Installed package '**"
@@ -241,7 +243,7 @@ class Core:
                                        timeout=60)
             if answer is not None and answer_to_boolean(answer) is True:
                 await bot.say("Okay, I'll be right back!")
-                await self.cache.publish('restart', 1)
+                await self.core.restart(restarted_from=ctx.message.channel)
 
     @commands.command(pass_context=True)
     async def update(self, ctx, *, extensions):
@@ -261,7 +263,7 @@ class Core:
             await bot.say("Updating '**" + extension + "**'...")
             await bot.type()
             try:
-                unsatisfied = base.update_extension(extension)
+                unsatisfied = self.base.update_extension(extension)
             except ExtensionNotFound:
                 await bot.say("The extension '**" + extension + "**' could not be found.")
                 failed_to_update_extensions.append(extension)
@@ -288,7 +290,7 @@ class Core:
                                                             timeout=60)
                         if answer is not None and answer_to_boolean(answer) is True:
                             for package in unsatisfied['packages']:
-                                return_code = base.install_package(package)
+                                return_code = self.base.install_package(package)
                                 if return_code is 0:
                                     unsatisfied['packages'].remove(package)
                                     await bot.say("Installed package '**"
@@ -315,7 +317,7 @@ class Core:
                                                             timeout=60)
                         if answer is not None and answer_to_boolean(answer) is True:
                             bot.invoke_command('install', ctx, ' '.join(unsatisfied['extensions']))
-                        exts = base.get_extensions()
+                        exts = self.base.get_extensions()
                         for extension_to_check in unsatisfied['extensions']:
                             if extension_to_check in exts:
                                 unsatisfied['extensions'].remove(extension_to_check)
@@ -364,7 +366,7 @@ class Core:
                                        timeout=60)
             if answer is not None and answer_to_boolean(answer) is True:
                 await bot.say("Okay, I'll be right back!")
-                await self.cache.publish('restart', 1)
+                await self.core.restart(restarted_from=ctx.message.channel)
 
     @commands.command(pass_context=True)
     async def uninstall(self, ctx, *, extensions):
@@ -382,7 +384,7 @@ class Core:
             await bot.say("Uninstalling '**" + extension + "**'...")
             await bot.type()
             try:
-                to_cascade = base.uninstall_extension(extension)
+                to_cascade = self.base.uninstall_extension(extension)
             except ExtensionNotFound:
                 await bot.say("The extension '**" + extension + "**' could not be found.")
                 failed_to_uninstall_extensions.append(extension)
@@ -440,7 +442,7 @@ class Core:
                                        timeout=60)
             if answer is not None and answer_to_boolean(answer) is True:
                 await bot.say("Okay, I'll be right back!")
-                await self.cache.publish('restart', 1)
+                await self.core.restart(restarted_from=ctx.message.channel)
 
     @commands.group(name='set', pass_context=True)
     async def set(self, ctx):
@@ -629,19 +631,19 @@ class Core:
         """Sets the bot's login token."""
         # [p]set token <token>
 
-        if len(token) < 50:
-            await self.bot.say("Invalid token.")
+        if len(token) > 50:  # assuming token
+            self.base.set_token(token)
+            await self.bot.say("Token set. Restart Dwarf to use the new token.")
+            log.info("Bot token changed.")
         else:
-            base.set_token(token)
-            await self.bot.say("Token set. Restart me.")
-            log.debug("Token changed.")
+            await self.bot.say("Invalid token.")
 
     @set.command(pass_context=True)
     @permissions.owner()
-    async def repo(self, ctx, repository):
+    async def repository(self, ctx, repository):
         """Sets the bot's repository."""
         
-        core.set_repository(repository)
+        self.core.set_repository(repository)
         await self.bot.say("My repository is now located at:\n<" + repository + ">")
 
     @set.command(pass_context=True)
@@ -649,7 +651,7 @@ class Core:
     async def officialinvite(self, ctx, invite):
         """Sets the bot's official server's invite URL."""
         
-        core.set_official_invite(invite)
+        self.core.set_official_invite(invite)
         await self.bot.say("My official server invite is now:\n<" + invite + ">")
 
     @add.command(pass_context=True)
@@ -661,8 +663,8 @@ class Core:
             prefix = prefix[1:len(prefix) - 1]
         
         try:
-            core.add_prefix(prefix)
-            self.bot.command_prefix = core.get_prefixes()
+            self.core.add_prefix(prefix)
+            self.bot.command_prefix = self.core.get_prefixes()
             await self.bot.say("The prefix '**" + prefix + "**' was added successfully.")
         except PrefixAlreadyExists:
             await self.bot.say("The prefix '**" + prefix + "**' could not be added "
@@ -677,8 +679,8 @@ class Core:
             prefix = prefix[1:len(prefix) - 1]
         
         try:
-            core.remove_prefix(prefix)
-            self.bot.command_prefix = core.get_prefixes()
+            self.core.remove_prefix(prefix)
+            self.bot.command_prefix = self.core.get_prefixes()
             await self.bot.say("The prefix '**" + prefix + "**' was removed successfully.")
         except PrefixNotFound:
             await self.bot.say("The prefix '**" + prefix + "**' could not be found.")
@@ -688,7 +690,7 @@ class Core:
     async def prefixes(self, ctx):
         """Shows the bot's prefixes."""
         
-        prefixes = core.get_prefixes()
+        prefixes = self.core.get_prefixes()
         if len(prefixes) > 1:
             await self.bot.say("My prefixes are: '**" + "**', '**".join(prefixes) + "**'")
         else:
@@ -705,7 +707,7 @@ class Core:
         await self.bot.say("Pong.\nTime: " + str(round((t2-t1)*1000)) + "ms")
 
     async def on_shutdown_message(self, message):
-        base.disable_restarting()
+        self.core.disable_restarting()
         print("Shutting down...")
         await self.bot.logout()
     
@@ -721,16 +723,16 @@ class Core:
         # [p]shutdown
         
         await self.bot.say("Goodbye!")
-        await self.cache.publish('shutdown', 1)
+        await self.core.shutdown()
     
     @commands.command(pass_context=True)
     @permissions.owner()
-    async def restart(self):
+    async def restart(self, ctx):
         """Restarts Dwarf."""
         # [p]restart
         
         await self.bot.say("I'll be right back!")
-        await self.cache.publish('restart', 1)
+        await self.core.restart(restarted_from=ctx.message.channel)
 
     async def get_command(self, command):
         command = command.split()
@@ -803,7 +805,7 @@ class Core:
         """Sends message to the owner of the bot."""
         # [p]contact <message>
 
-        owner_id = core.get_owner_id()
+        owner_id = self.core.get_owner_id()
         if owner_id is None:
             await self.bot.say("I have no owner set.")
             return
@@ -834,8 +836,8 @@ class Core:
         # [p]info
 
         await self.bot.say(strings.info.format(
-            core.get_repository(),
-            core.get_official_invite()))
+            self.core.get_repository(),
+            self.core.get_official_invite()))
 
     async def leave_confirmation(self, server, owner, ctx):
         if not ctx.message.channel.is_private:
@@ -860,11 +862,11 @@ class Core:
         """Shows the bot's current version"""
         # [p]version
 
-        await self.bot.say("Current version: " + base.get_dwarf_version())
+        await self.bot.say("Current version: " + self.base.get_dwarf_version())
 
 
 def setup(bot):
     core_cog = Core(bot)
-    bot.loop.create_task(core_cog.cache.subscribe('shutdown', 1))
-    bot.loop.create_task(core_cog.cache.subscribe('restart', 1))
+    bot.loop.create_task(core_cog.core.cache.subscribe('shutdown', 1))
+    bot.loop.create_task(core_cog.core.cache.subscribe('restart', 1))
     bot.add_cog(core_cog)

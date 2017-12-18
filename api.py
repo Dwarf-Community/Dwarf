@@ -179,10 +179,16 @@ class CacheAPI:
         Parameters
         ----------
         channel : str
-            The name of the channel to subscribe to.
+            The name of the Redis Pub/Sub channel to subscribe to.
         limit : Optional[int]
             The maximum number of times messages published to the channel will be read.
         """
+        
+        if limit is not None:
+            if not isinstance(limit, int):
+                raise TypeError("limit must be of type int")
+            if not limit > 0:
+                raise ValueError("limit must be greater than 0")
         
         redis = await self.get_async_redis()
         channels = await redis.subscribe('channel:' + '_'.join((self.app, channel)))
@@ -191,36 +197,34 @@ class CacheAPI:
             while (await actual_channel.wait_message()):
                 message = await actual_channel.get(encoding='utf-8')
                 self.bot.dispatch(channel + '_message', message)
-                if limit is not None:
-                    if not isinstance(limit, int):
-                        raise TypeError("limit must be of type int")
-                    if not limit > 0:
-                        raise ValueError("limit must be greater than 0")
-                    if limit == 1:
-                        break
-                    else:
-                        limit -= 1
+                if limit == 1:
+                    break
+                else:
+                    limit -= 1
                 
             await redis.unsubscribe(actual_channel)
             redis.close()
+            return
         except asyncio.CancelledError:
             await redis.unsubscribe(actual_channel)
             redis.close()
+            return
     
-    async def publish(self, channel, message):
+    async def publish(self, channel, message=1):
         """Publishes a message to a Redis Pub/Sub channel.
         
         Parameters
         ----------
         channel : str
             The name of the channel to publish to.
-        message
-            The message to publish.
+        message : Optional
+            The message to publish. Defaults to 1.
         """
         
         redis = await self.get_async_redis()
         await redis.publish('channel:' + '_'.join((self.app, channel)), message)
         redis.close()
+        return
 
 
 class BaseAPI:
@@ -228,14 +232,22 @@ class BaseAPI:
     needs to be loaded before Django loads any models.
     It also makes rebooting available to the bot and the web interface.
     
+    Parameters
+    ----------
+    bot
+        The bot used for specific methods.
+    
     Attributes
     ----------
     cache : :class:`CacheAPI`
         The cache backend connection of the API.
+    bot
+        The bot used for specific methods.
     """
     
-    def __init__(self):
-        self.cache = CacheAPI()
+    def __init__(self, bot=None):
+        self.cache = CacheAPI(bot=bot)
+        self.bot = bot
     
     def get_token(self):
         """Retrieves the bot's token."""
