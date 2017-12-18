@@ -1,10 +1,5 @@
-# import asyncio
-# import uvloop
-
-from dwarf.bot import run
-
-# asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
-# TODO make Dwarf compatible with uvloop
+import importlib
+import asyncio
 
 
 class Command:
@@ -12,4 +7,11 @@ class Command:
         pass
     
     def run_from_argv(self, argv):
-        run()
+        loop = asyncio.get_event_loop()
+        while True:
+            bot_module = importlib.import_module('dwarf.bot')
+            bot_module.main()
+            # if loop.is_running():
+                # bot_module.cleanup(loop)
+            if not bot_module.base.restarting_enabled():
+                break

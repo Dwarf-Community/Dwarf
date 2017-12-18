@@ -187,23 +187,25 @@ class CacheAPI:
         redis = await self.get_async_redis()
         channels = await redis.subscribe('channel:' + '_'.join((self.app, channel)))
         actual_channel = channels[0]
-        while (await actual_channel.wait_message()):
-            message = await actual_channel.get(encoding='utf-8')
-            self.bot.dispatch(channel + '_message', message)
-            if limit is not None:
-                if not isinstance(int, limit):
-                    raise TypeError("limit must be of type int")
-                if not limit > 0:
-                    raise ValueError("limit must be greater than 0")
-                if limit == 1:
-                    break
-                else:
-                    limit -= 1
+        try:
+            while (await actual_channel.wait_message()):
+                message = await actual_channel.get(encoding='utf-8')
+                self.bot.dispatch(channel + '_message', message)
+                if limit is not None:
+                    if not isinstance(limit, int):
+                        raise TypeError("limit must be of type int")
+                    if not limit > 0:
+                        raise ValueError("limit must be greater than 0")
+                    if limit == 1:
+                        break
+                    else:
+                        limit -= 1
                 
-        await actual_channel.unsubscribe('channel:' + '_'.join((self.app, channel)))
-        
-        redis.close()
-        print("redis connection closed!")
+            await redis.unsubscribe(actual_channel)
+            redis.close()
+        except asyncio.CancelledError:
+            await redis.unsubscribe(actual_channel)
+            redis.close()
     
     async def publish(self, channel, message):
         """Publishes a message to a Redis Pub/Sub channel.

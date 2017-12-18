@@ -1,10 +1,11 @@
+import aiohttp
 import discord
 from discord.ext import commands
 
-from dwarf import permissions
-from dwarf import formatting as f
+from dwarf import permissions, formatting as f
 from dwarf.api import CacheAPI, BaseAPI, ExtensionAlreadyInstalled, ExtensionNotFound, ExtensionNotInIndex
-from dwarf.bot import send_command_help
+from dwarf.bot import send_command_help, get_oauth_url
+from dwarf.models import Guild, Channel, User
 from dwarf.utils import answer_to_boolean, is_boolean_answer
 from .api import CoreAPI, PrefixAlreadyExists, PrefixNotFound
 from . import strings
@@ -12,8 +13,8 @@ from . import strings
 import asyncio
 import logging
 import traceback
-import aiohttp
 import time
+import os
 
 
 log = logging.getLogger('dwarf.core')
@@ -29,6 +30,45 @@ class Core:
         self.bot = bot
         self.cache = CacheAPI(bot=bot)
         self.session = aiohttp.ClientSession(loop=self.bot.loop)
+
+    async def on_command(self, command, ctx):
+        author = ctx.message.author
+        user = User.objects.get_or_create(id=author.id)[0]
+        user_already_registered = User.objects.filter(id=author.id).exists()
+        user.command_count += 1
+        user.save()
+        if not user_already_registered:
+            await self.bot.send_message(author, strings.user_registered.format(author.name))
+
+    async def on_ready(self):
+        if core.get_owner_id() is None:
+            await set_bot_owner()
+        
+        # clear terminal screen
+        if os.name == 'nt':
+            os.system('cls')
+        else:
+            os.system('clear')
+        
+        print('------')
+        print(strings.bot_is_online.format(self.bot.user.name))
+        print('------')
+        print(strings.connected_to)
+        print(strings.connected_to_servers.format(Guild.objects.count()))
+        print(strings.connected_to_channels.format(Channel.objects.count()))
+        print(strings.connected_to_users.format(User.objects.count()))
+        print("\n{} active cogs".format(len(base.get_extensions())))
+        prefix_label = strings.prefix_singular
+        if len(core.get_prefixes()) > 1:
+            prefix_label = strings.prefix_plural
+        print("{}: {}\n".format(prefix_label, " ".join(list(core.get_prefixes()))))
+        print("------\n")
+        print(strings.use_this_url)
+        url = await get_oauth_url(self.bot)
+        self.bot.oauth_url = url
+        print(url)
+        print("\n------")
+        core.enable_restarting()
 
     @commands.command(name='eval', pass_context=True, hidden=True)
     @permissions.owner()
@@ -193,14 +233,15 @@ class Core:
         await bot.say(completed_message)
         
         if installed_extensions:
-            bot.say("Reboot Dwarf for changes to take effect.\n"
+            await bot.say("Reboot Dwarf for changes to take effect.\n"
                     "Would you like to restart now? (yes/no)")
-        answer = await bot.wait_for_message(author=ctx.message.author,
-                                   channel=ctx.message.channel,
-                                   check=is_boolean_answer,
-                                   timeout=60)
-        if answer is not None and answer_to_boolean(answer) is True:
-            await self.cache.publish('restart', 1)
+            answer = await bot.wait_for_message(author=ctx.message.author,
+                                       channel=ctx.message.channel,
+                                       check=is_boolean_answer,
+                                       timeout=60)
+            if answer is not None and answer_to_boolean(answer) is True:
+                await bot.say("Okay, I'll be right back!")
+                await self.cache.publish('restart', 1)
 
     @commands.command(pass_context=True)
     async def update(self, ctx, *, extensions):
@@ -315,14 +356,15 @@ class Core:
         await bot.say(completed_message)
         
         if updated_extensions:
-            bot.say("Reboot Dwarf for changes to take effect.\n"
+            await bot.say("Reboot Dwarf for changes to take effect.\n"
                     "Would you like to restart now? (yes/no)")
-        answer = await bot.wait_for_message(author=ctx.message.author,
-                                   channel=ctx.message.channel,
-                                   check=is_boolean_answer,
-                                   timeout=60)
-        if answer is not None and answer_to_boolean(answer) is True:
-            await self.cache.publish('restart', 1)
+            answer = await bot.wait_for_message(author=ctx.message.author,
+                                       channel=ctx.message.channel,
+                                       check=is_boolean_answer,
+                                       timeout=60)
+            if answer is not None and answer_to_boolean(answer) is True:
+                await bot.say("Okay, I'll be right back!")
+                await self.cache.publish('restart', 1)
 
     @commands.command(pass_context=True)
     async def uninstall(self, ctx, *, extensions):
@@ -390,14 +432,15 @@ class Core:
         await bot.say(completed_message)
         
         if uninstalled_extensions:
-            bot.say("Reboot Dwarf for changes to take effect.\n"
+            await bot.say("Reboot Dwarf for changes to take effect.\n"
                     "Would you like to restart now? (yes/no)")
-        answer = await bot.wait_for_message(author=ctx.message.author,
-                                   channel=ctx.message.channel,
-                                   check=is_boolean_answer,
-                                   timeout=60)
-        if answer is not None and answer_to_boolean(answer) is True:
-            await self.cache.publish('restart', 1)
+            answer = await bot.wait_for_message(author=ctx.message.author,
+                                       channel=ctx.message.channel,
+                                       check=is_boolean_answer,
+                                       timeout=60)
+            if answer is not None and answer_to_boolean(answer) is True:
+                await bot.say("Okay, I'll be right back!")
+                await self.cache.publish('restart', 1)
 
     @commands.group(name='set', pass_context=True)
     async def set(self, ctx):
@@ -662,17 +705,18 @@ class Core:
         await self.bot.say("Pong.\nTime: " + str(round((t2-t1)*1000)) + "ms")
 
     async def on_shutdown_message(self, message):
-        self.core.disable_restarting()
+        base.disable_restarting()
         print("Shutting down...")
         await self.bot.logout()
     
     async def on_restart_message(self, allow_restart):
         print("Restarting...")
         await self.bot.logout()
+        print("Logged out.")
     
     @commands.command(pass_context=True)
     @permissions.owner()
-    async def shutdown(self):
+    async def shutdown(self, ctx):
         """Shuts down Dwarf."""
         # [p]shutdown
         
@@ -702,6 +746,9 @@ class Core:
             if check.__name__ == "is_owner_check":
                 return False
         return comm_obj
+
+    async def on_logout(self):
+        self.bot.cleanup()
 
     @commands.command(pass_context=True, no_pm=True)
     @permissions.owner()
