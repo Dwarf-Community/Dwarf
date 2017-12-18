@@ -29,6 +29,21 @@ class CoreAPI:
     def __init__(self):
         self.cache = CacheAPI()
 
+    def enable_restarting(self):
+        """Makes Dwarf restart whenever it is terminated until `disable_restarting` is called."""
+        
+        return self.cache.set('is_supposed_to_be_running', True)
+    
+    def disable_restarting(self):
+        """Prevents Dwarf from restarting for the rest of the current session."""
+        
+        return self.cache.set('is_supposed_to_be_running', False)
+    
+    def restarting_enabled():
+        """Checks if Dwarf should be restarted when terminated."""
+        
+        return self.cache.get('is_supposed_to_be_running', False)
+    
     def get_prefixes(self):
         """Returns a list of the bot's prefixes."""
         

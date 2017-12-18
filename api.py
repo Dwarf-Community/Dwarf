@@ -187,23 +187,25 @@ class CacheAPI:
         redis = await self.get_async_redis()
         channels = await redis.subscribe('channel:' + '_'.join((self.app, channel)))
         actual_channel = channels[0]
-        while (await actual_channel.wait_message()):
-            message = await actual_channel.get(encoding='utf-8')
-            self.bot.dispatch(channel + '_message', message)
-            if limit is not None:
-                if not isinstance(int, limit):
-                    raise TypeError("limit must be of type int")
-                if not limit > 0:
-                    raise ValueError("limit must be greater than 0")
-                if limit == 1:
-                    break
-                else:
-                    limit -= 1
+        try:
+            while (await actual_channel.wait_message()):
+                message = await actual_channel.get(encoding='utf-8')
+                self.bot.dispatch(channel + '_message', message)
+                if limit is not None:
+                    if not isinstance(limit, int):
+                        raise TypeError("limit must be of type int")
+                    if not limit > 0:
+                        raise ValueError("limit must be greater than 0")
+                    if limit == 1:
+                        break
+                    else:
+                        limit -= 1
                 
-        await actual_channel.unsubscribe('channel:' + '_'.join((self.app, channel)))
-        
-        redis.close()
-        print("redis connection closed!")
+            await redis.unsubscribe(actual_channel)
+            redis.close()
+        except asyncio.CancelledError:
+            await redis.unsubscribe(actual_channel)
+            redis.close()
     
     async def publish(self, channel, message):
         """Publishes a message to a Redis Pub/Sub channel.
@@ -252,6 +254,21 @@ class BaseAPI:
     
     def delete_token(self):
         self.cache.delete('token')
+    
+    def enable_restarting(self):
+        """Makes Dwarf restart whenever it is terminated until `disable_restarting` is called."""
+        
+        return self.cache.set('is_supposed_to_be_running', True)
+    
+    def disable_restarting(self):
+        """Prevents Dwarf from restarting for the rest of the current session."""
+        
+        return self.cache.set('is_supposed_to_be_running', False)
+    
+    def restarting_enabled(self):
+        """Checks if Dwarf should be restarted when terminated."""
+        
+        return self.cache.get('is_supposed_to_be_running', False)
     
     def install_extension(self, extension, repository=None):
         """Installs an extension via the Dwarf Extension Index or directly from a repository.
