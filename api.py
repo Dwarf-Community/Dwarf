@@ -42,7 +42,9 @@ class CacheAPI:
         If specified, the :class:`CacheAPI` stores data in that app's own storage area.
     extension : Optional[str]
         If specified, the :class:`CacheAPI` stores data in that
-        extension's own storage area.
+        extension's own storage area. The actual keys will be
+        `extension + '_' + key`; similar applies for channels when
+        using :meth:`publish` or :meth:`subscribe`.
     bot
         The bot used to dispatch subscription events.
 
@@ -59,9 +61,8 @@ class CacheAPI:
         The bot used to dispatch subscription events.
     """
     
-    def __init__(self, app='dwarf', extension='', bot=None, loop=None):
+    def __init__(self, extension='', bot=None, loop=None):
         self.backend = redis
-        self.app = app
         self.extension = extension
         self.bot = bot
         if self.bot is not None and loop is None:
@@ -96,8 +97,10 @@ class CacheAPI:
         """
         
         if not self.extension:
-            return self.backend.get(key='_'.join((self.app, key)), default=default)
-        return self.backend.get(key='_'.join((self.app, self.extension, key)), default=default)
+            return self.backend.get(key=key, default=default)
+        else:
+            key = self.extension + '_' + key
+            return self.backend.get(key=key, default=default)
     
     def set(self, key, value, timeout=None):
         """Sets a key in the cache.
@@ -108,14 +111,12 @@ class CacheAPI:
             The key to set in the cache.
         """
         
-        if not self.extension:
-            return self.backend.set(key='_'.join((self.app, key)), value=value, timeout=timeout)
-        return self.backend.set(key='_'.join((self.app, self.extension, key)), value=value, timeout=timeout)
+        if self.extension:
+            key = self.extension + '_' + key
+        return self.backend.set(key=key, value=value, timeout=timeout)
     
     def get_many(self, keys):
-        """Retrieves an iterable of keys' values from the cache.
-        Returns a list of the keys' values.
-        If a key wasn't found, it inserts None into the list of values instead.
+        """Retrieves keys from the cache and returns them with their values as a dict.
         
         Parameters
         ----------
@@ -123,37 +124,27 @@ class CacheAPI:
             The keys to retrieve from the cache.
         """
         
-        actual_keys = []
-        if not self.extension:
+        if self.extension:
             for key in keys:
-                actual_keys.append('_'.join((self.app, key)))
-        else:
-            for key in keys:
-                actual_keys.append('_'.join((self.app, self.extension, key)))
-        return list(self.backend.get_many(keys=actual_keys).values())
+                key = extension + '_' + key
+        return self.backend.get_many(keys=keys)
     
-    def set_many(self, keys, values, timeout=None):
+    def set_many(self, data, timeout=None):
         """Sets an iterable of keys in the cache.
         If a key wasn't found, it inserts None into the list of values instead.
         
         Parameters
         ----------
-        keys : iter of str
-            The keys to retrieve from the cache.
-        values : iter
-            An iterable of values to assign to the keys.
+        data : dict
+            A dict consisting of key-value pairs.
         timeout : Optional[int]
-            After this amount of time (in seconds), the key will be deleted.
+            After this amount of time (in seconds), all keys in `data` will be deleted.
         """
         
-        actual_keys = []
-        if not self.extension:
-            for key in keys:
-                actual_keys.append('_'.join((self.app, key)))
-        else:
-            for key in keys:
-                actual_keys.append('_'.join((self.app, self.extension, key)))
-        return list(self.backend.set_many(data=dict(zip(actual_keys, values)), timeout=timeout).values())
+        if self.extension:
+            for key in data:
+                key = self.extension + '_' + key
+        return self.backend.set_many(data=data, timeout=timeout)
     
     def delete(self, key):
         """Deletes a key from the cache.
@@ -164,9 +155,9 @@ class CacheAPI:
             The key to delete from the cache.
         """
         
-        if not self.extension:
-            return self.backend.delete(key='_'.join([self.app, key]))
-        return self.backend.delete(key='_'.join([self.app, self.extension, key]))
+        if self.extension:
+            key = self.extension + '_' + key
+        return self.backend.delete(key=key)
     
     async def subscribe(self, channel, limit=None):
         """Subscribes to a Redis Pub/Sub channel.
@@ -180,6 +171,7 @@ class CacheAPI:
         ----------
         channel : str
             The name of the Redis Pub/Sub channel to subscribe to.
+            The internal channel name will be `'channel:' + channel`.
         limit : Optional[int]
             The maximum number of times messages published to the channel will be read.
         """
@@ -191,7 +183,7 @@ class CacheAPI:
                 raise ValueError("limit must be greater than 0")
         
         redis = await self.get_async_redis()
-        channels = await redis.subscribe('channel:' + '_'.join((self.app, channel)))
+        channels = await redis.subscribe('channel:' + channel)
         actual_channel = channels[0]
         try:
             while (await actual_channel.wait_message()):
@@ -217,12 +209,14 @@ class CacheAPI:
         ----------
         channel : str
             The name of the channel to publish to.
+            The internal channel name will be `'channel:' + channel`.
         message : Optional
             The message to publish. Defaults to 1.
         """
         
+        channel = 'channel:' + channel
         redis = await self.get_async_redis()
-        await redis.publish('channel:' + '_'.join((self.app, channel)), message)
+        await redis.publish(channel, message)
         redis.close()
         return
 
