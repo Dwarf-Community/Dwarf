@@ -1,8 +1,8 @@
 import discord
 from discord.ext import commands
 
-from .api import CacheAPI, BaseAPI
-from .core.api import CoreAPI
+from .controller import CacheController, BaseController
+from .core.controller import CoreController
 from . import strings
 
 import traceback
@@ -13,9 +13,9 @@ class Bot(commands.Bot):
     """Represents a Discord bot."""
 
     def __init__(self, loop=None):
-        self.base = BaseAPI(bot=self)
-        self.core = CoreAPI(bot=self)
-        self.cache = CacheAPI(bot=self)
+        self.base = BaseController(bot=self)
+        self.core = CoreController(bot=self)
+        self.cache = CacheController(bot=self)
         super().__init__(command_prefix=self.core.get_prefixes(), loop=loop, description=self.core.get_description(),
                          pm_help=None, cache_auth=False, command_not_found=strings.command_not_found,
                          command_has_no_subcommands=strings.command_has_no_subcommands)

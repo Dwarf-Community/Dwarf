@@ -27,7 +27,7 @@ class ExtensionNotFound(Exception):
     pass
 
 
-class CacheAPI:
+class CacheController:
     """Represents a connection to the cache backend.
     This class is used to store keys into and retrieve keys
     from the cache.
@@ -35,7 +35,7 @@ class CacheAPI:
     Parameters
     ----------
     extension : Optional[str]
-        If specified, the :class:`CacheAPI` stores data in that
+        If specified, the :class:`CacheController` stores data in that
         extension's own storage area. The actual keys will be
         ``extension + '_' + key``; similar applies for channels when
         using :meth:`publish` or :meth:`subscribe`.
@@ -45,9 +45,9 @@ class CacheAPI:
     Attributes
     -----------
     backend
-        The cache backend the :class:`CacheAPI` connects to.
+        The cache backend the :class:`CacheController` connects to.
     extension : Optional[str]
-        If specified, the :class:`CacheAPI` stores data in that
+        If specified, the :class:`CacheController` stores data in that
         extension's own storage area.
     bot
         The bot used to dispatch subscription events.
@@ -219,7 +219,7 @@ class CacheAPI:
         return
 
 
-class BaseAPI:
+class BaseController:
     """Internal API that manages extensions and makes data available that
     needs to be loaded before Django loads any models.
     It also makes rebooting available to the bot and the web interface.
@@ -231,14 +231,14 @@ class BaseAPI:
     
     Attributes
     ----------
-    cache : :class:`CacheAPI`
+    cache : :class:`CacheController`
         The cache backend connection of the API.
     bot
         The bot used for specific methods.
     """
     
     def __init__(self, bot=None):
-        self.cache = CacheAPI(bot=bot)
+        self.cache = CacheController(bot=bot)
         self.bot = bot
     
     def get_token(self):

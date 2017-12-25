@@ -15,7 +15,7 @@ class PrefixAlreadyExists(Exception):
     pass
 
 
-class CoreAPI:
+class CoreController:
     """Transforms Discord objects into Dwarf objects
     that are connected to the database backend.
     Also provides some basic management and settings functions.
@@ -27,7 +27,7 @@ class CoreAPI:
     
     Attributes
     ----------
-    cache : :class:`CacheAPI`
+    cache : :class:`CacheController`
         The cache backend connection of the API.
     bot
         The bot that will be restarted, shut down etc.

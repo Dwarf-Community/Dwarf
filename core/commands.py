@@ -6,7 +6,7 @@ from dwarf import permissions, formatting as f
 from dwarf.api import BaseAPI, ExtensionAlreadyInstalled, ExtensionNotFound, ExtensionNotInIndex
 from dwarf.models import Guild, Channel, User
 from dwarf.utils import answer_to_boolean, is_boolean_answer
-from .api import CoreAPI, PrefixAlreadyExists, PrefixNotFound
+from .controller import CoreController, PrefixAlreadyExists, PrefixNotFound
 from . import strings
 
 import asyncio
@@ -21,7 +21,7 @@ class Core:
 
     def __init__(self, bot):
         self.bot = bot
-        self.core = CoreAPI(bot=bot)
+        self.core = CoreController(bot=bot)
         self.base = BaseAPI(bot=bot)
         self.log = logging.getLogger('dwarf.core.cog')
         self.session = aiohttp.ClientSession(loop=self.bot.loop)

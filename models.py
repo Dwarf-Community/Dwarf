@@ -1,12 +1,12 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser
 
-from dwarf.api import BaseAPI
+from .controller import BaseController
 
 import importlib
 
 
-base = BaseAPI()
+base = BaseController()
 
 
 class User(AbstractBaseUser):
