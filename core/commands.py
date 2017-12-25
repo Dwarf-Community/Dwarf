@@ -3,8 +3,7 @@ import discord
 from discord.ext import commands
 
 from dwarf import permissions, formatting as f
-from dwarf.api import CacheAPI, BaseAPI, ExtensionAlreadyInstalled, ExtensionNotFound, ExtensionNotInIndex
-from dwarf.bot import send_command_help, get_oauth_url
+from dwarf.api import BaseAPI, ExtensionAlreadyInstalled, ExtensionNotFound, ExtensionNotInIndex
 from dwarf.models import Guild, Channel, User
 from dwarf.utils import answer_to_boolean, is_boolean_answer
 from .api import CoreAPI, PrefixAlreadyExists, PrefixNotFound
@@ -38,7 +37,7 @@ class Core:
 
     async def on_ready(self):
         if self.core.get_owner_id() is None:
-            await set_bot_owner()
+            await self.bot.set_bot_owner()
         
         restarted_from = self.core.get_restarted_from()
         if restarted_from is not None:
@@ -53,7 +52,7 @@ class Core:
             os.system('clear')
         
         print('------')
-        print(strings.bot_is_online.format(self.bot.user.name))
+        # print(strings.bot_is_online.format(self.bot.user.name))
         print('------')
         print(strings.connected_to)
         print(strings.connected_to_servers.format(Guild.objects.count()))
@@ -66,7 +65,7 @@ class Core:
         print("{}: {}\n".format(prefix_label, " ".join(list(self.core.get_prefixes()))))
         print("------\n")
         print(strings.use_this_url)
-        url = await get_oauth_url(self.bot)
+        url = await self.bot.get_oauth_url()
         self.bot.oauth_url = url
         print(url)
         print("\n------")
@@ -116,7 +115,7 @@ class Core:
         installed_packages = []
         failed_to_install_extensions = []
         failed_to_install_packages = []
-        
+
         def is_extension_name_check(extension_name):
                 if isinstance(extension_name, discord.Message):
                     extension_name = extension_name.content
@@ -176,8 +175,8 @@ class Core:
                                     installed_packages.append(package)
                             
                             if unsatisfied['packages']:
-                                self.bot.say("Failed to install packages: '**"
-                                             + "**', '**".join(unsatisfied['packages']) + "**'.")
+                                await bot.say("Failed to install packages: '**"
+                                              + "**', '**".join(unsatisfied['packages']) + "**'.")
                                 failed_to_install_packages += unsatisfied['packages']
                                 return False
                         else:
@@ -236,7 +235,7 @@ class Core:
         
         if installed_extensions:
             await bot.say("Reboot Dwarf for changes to take effect.\n"
-                    "Would you like to restart now? (yes/no)")
+                          "Would you like to restart now? (yes/no)")
             answer = await bot.wait_for_message(author=ctx.message.author,
                                        channel=ctx.message.channel,
                                        check=is_boolean_answer,
@@ -298,8 +297,8 @@ class Core:
                                     installed_packages.append(package)
                             
                             if unsatisfied['packages']:
-                                self.bot.say("Failed to install packages: '**"
-                                             + "**', '**".join(unsatisfied['packages']) + "**'.")
+                                await bot.say("Failed to install packages: '**"
+                                              + "**', '**".join(unsatisfied['packages']) + "**'.")
                                 failed_to_install_packages += unsatisfied['packages']
                                 return False
                         else:
@@ -359,11 +358,11 @@ class Core:
         
         if updated_extensions:
             await bot.say("Reboot Dwarf for changes to take effect.\n"
-                    "Would you like to restart now? (yes/no)")
+                          "Would you like to restart now? (yes/no)")
             answer = await bot.wait_for_message(author=ctx.message.author,
-                                       channel=ctx.message.channel,
-                                       check=is_boolean_answer,
-                                       timeout=60)
+                                                channel=ctx.message.channel,
+                                                check=is_boolean_answer,
+                                                timeout=60)
             if answer is not None and answer_to_boolean(answer) is True:
                 await bot.say("Okay, I'll be right back!")
                 await self.core.restart(restarted_from=ctx.message.channel)
@@ -395,20 +394,21 @@ class Core:
                                   + "**" + "**\n**".join(to_cascade) + "**")
                     await bot.say(strings.proceed_with_uninstallation)
                     answer = await bot.wait_for_message(author=ctx.message.author,
-                                                             channel=ctx.message.channel,
-                                                             check=is_boolean_answer,
-                                                             timeout=60)
+                                                        channel=ctx.message.channel,
+                                                        check=is_boolean_answer,
+                                                        timeout=60)
                     if answer is not None and answer_to_boolean(answer) is True:
                         for extension_to_uninstall in to_cascade:
                             return_code = await _uninstall(extension_to_uninstall)
                             if return_code is True:
-                                to_cascade.remove(_extension)
+                                to_cascade.remove(extension_to_uninstall)
                         
                         if to_cascade:
                             await bot.say("Failed to uninstall '**"
                                           + "**', '**".join(to_cascade) + "**'.")
-                            return False
                             failed_to_uninstall_extensions.append(extension)
+                            return False
+
                         else:
                             return await _uninstall(extension)
                     else:
@@ -450,7 +450,7 @@ class Core:
         # [p]set <subcommand>
 
         if ctx.invoked_subcommand is None:
-            await send_command_help(ctx)
+            await self.bot.send_command_help(ctx)
             pass
     
     @commands.group(name='get', pass_context=True)
@@ -459,7 +459,7 @@ class Core:
         # [p]set <subcommand>
 
         if ctx.invoked_subcommand is None:
-            await send_command_help(ctx)
+            await self.bot.send_command_help(ctx)
             pass
 
     @commands.group(name='add', pass_context=True)
@@ -468,7 +468,7 @@ class Core:
         # [p]add <subcommand>
         
         if ctx.invoked_subcommand is None:
-            await send_command_help(ctx)
+            await self.bot.send_command_help(ctx)
             pass
 
     @commands.group(name='remove', pass_context=True)
@@ -477,7 +477,7 @@ class Core:
         # [p]remove <subcommand>
         
         if ctx.invoked_subcommand is None:
-            await send_command_help(ctx)
+            await self.bot.send_command_help(ctx)
             pass
     
     @commands.group(name='setup', pass_context=True)
@@ -486,7 +486,7 @@ class Core:
         # [p]setup <subcommand>
         
         if ctx.invoked_subcommand is None:
-            await send_command_help(ctx)
+            await self.bot.send_command_help(ctx)
             pass
 
     @set.command(pass_context=True)
@@ -507,7 +507,7 @@ class Core:
             else:
                 await self.bot.say("Done.")
         else:
-            await send_command_help(ctx)
+            await self.bot.send_command_help(ctx)
 
     @set.command(pass_context=True)
     @permissions.owner()
@@ -579,7 +579,7 @@ class Core:
                                                game=current_game)
                 await self.bot.say("Status changed.")
             else:
-                await send_command_help(ctx)
+                await self.bot.send_command_help(ctx)
 
     @set.command(pass_context=True)
     @permissions.owner()
@@ -598,13 +598,13 @@ class Core:
                 streamer = "https://www.twitch.tv/" + streamer
             game = discord.Game(type=1, url=streamer, name=stream_title)
             await self.bot.change_presence(game=game, status=current_status)
-            log.debug('Owner has set streaming status and url to "{}" and {}'.format(stream_title, streamer))
+            self.log.debug('Owner has set streaming status and url to "{}" and {}'.format(stream_title, streamer))
         elif streamer is not None:
-            await send_command_help(ctx)
+            await self.bot.send_command_help(ctx)
             return
         else:
             await self.bot.change_presence(game=None, status=current_status)
-            log.debug('stream cleared by owner')
+            self.log.debug('stream cleared by owner')
         await self.bot.say("Done.")
 
     @set.command(pass_context=True)
@@ -618,11 +618,11 @@ class Core:
                 data = await r.read()
             await self.bot.edit_profile(avatar=data)
             await self.bot.say("Done.")
-            log.debug("Changed avatar.")
+            self.log.debug("Changed avatar.")
         except Exception as e:
             await self.bot.say("Error, check your console or logs for "
                                "more information.")
-            log.exception(e)
+            self.log.exception(e)
             traceback.print_exc()
 
     @set.command(pass_context=True)
@@ -634,9 +634,17 @@ class Core:
         if len(token) > 50:  # assuming token
             self.base.set_token(token)
             await self.bot.say("Token set. Restart Dwarf to use the new token.")
-            log.info("Bot token changed.")
+            self.log.info("Bot token changed.")
         else:
             await self.bot.say("Invalid token.")
+
+    @set.command(pass_context=True)
+    @permissions.owner()
+    async def description(self, ctx, description):
+        """Sets the bot's description."""
+
+        self.core.set_description(description)
+        await self.bot.say("My description has been set.")
 
     @set.command(pass_context=True)
     @permissions.owner()
@@ -750,7 +758,7 @@ class Core:
         return comm_obj
 
     async def on_logout(self):
-        self.bot.cleanup()
+        self.bot.stop_loop()
         del self.bot
 
     @commands.command(pass_context=True, no_pm=True)
@@ -768,7 +776,7 @@ class Core:
         if response is not None:
             if response.content.lower().strip() == "yes":
                 await self.bot.say("Alright. Bye :wave:")
-                log.debug('Leaving "{}"'.format(message.server.name))
+                self.log.debug('Leaving "{}"'.format(message.server.name))
                 await self.bot.leave_server(message.server)
         else:
             await self.bot.say("Ok I'll stay here then.")

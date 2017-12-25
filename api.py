@@ -258,7 +258,7 @@ class BaseAPI:
     
     def delete_token(self):
         self.cache.delete('token')
-    
+
     def enable_restarting(self):
         """Makes Dwarf restart whenever it is terminated until `disable_restarting` is called."""
         

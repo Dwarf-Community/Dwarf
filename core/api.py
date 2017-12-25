@@ -47,7 +47,7 @@ class CoreAPI:
         
         return self.cache.set('is_supposed_to_be_running', False)
     
-    def restarting_enabled():
+    def restarting_enabled(self):
         """Checks if Dwarf should be restarted when terminated."""
         
         return self.cache.get('is_supposed_to_be_running', False)
@@ -141,31 +141,15 @@ class CoreAPI:
     def set_owner_id(self, user_id):
         self.cache.set('owner', user_id)
 
-    def is_help_private(self):
-        """Retrieves whether or not to send help messages privately."""
+    def get_description(self):
+        """Retrieves a description about the application."""
 
-        return self.cache.get('pm_help', default=False)
+        return self.cache.get('description')
 
-    def set_help_private(self, boolean):
-        """Sets whether or not to send help messages privately.
+    def set_description(self, description):
+        """Retrieves a description about the application."""
 
-        Parameters
-        ----------
-        boolean : bool
-            If True, help messages should be sent via PM.
-            If False, help messages should be sent to where the help command was issued.
-        """
-
-        self.cache.set('pm_help', boolean)
-
-    def toggle_help_private(self):
-        """A helper function that toggles whether or not to send help messages privately."""
-
-        current_status = self.is_help_private()
-        if current_status is True:
-            self.set_help_private(False)
-        else:
-            self.set_help_private(True)
+        return self.cache.set('description', description)
 
     def get_repository(self):
         """Retrieves Dwarf's official repository's URL."""

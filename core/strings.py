@@ -44,8 +44,6 @@ connected_to_channels = "{} channels"
 
 connected_to_users = "{} users"
 
-no_prefix_set = "No prefix set. Defaulting to !"
-
 user_registered = """{}, thanks for using my commands!
 I just registered you in my database so you can use all my features. I hope that's okay for you.
 If it isn't, please use the `unregister` command. That will remove all of the data I store about you.

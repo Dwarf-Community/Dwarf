@@ -1,5 +1,4 @@
-"""Dwarf, a Django / Discord subframework by AileenLumina that also features
-a Discord bot which you can run using python manage.py startbot"""
+__doc__ = open('README.md').read()
 
 
 version = "0.9.0b"
