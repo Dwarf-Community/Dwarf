@@ -5,16 +5,16 @@ Server owners can specify roles that have more permissions than others.
 They can also specify channels in which specific commands are disallowed.
 And they can make the bot fully ignore specific channels.
 """
-# TODO
+# TODO completely remake this and move most of it to the bot module
 
 
-from dwarf.models import User, Role, Channel
-from dwarf.core.api import CoreAPI
+from dwarf.models import User
+from dwarf.core.controller import CoreController
 
 from discord.ext import commands
 
 
-core = CoreAPI()
+core = CoreController()
 
 
 def is_owner_check(ctx):
@@ -28,7 +28,7 @@ def owner():
 async def is_admin_check(ctx):
     is_admin = False
     author = ctx.message.author
-    admins = await User.objects.all(is_admin=True)
+    admins = User.objects.all(is_admin=True)
     for i in range(len(admins)):
         if author.id == admins[i].id:
             is_admin = True

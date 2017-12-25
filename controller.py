@@ -5,7 +5,7 @@ import aioredis
 
 import dwarf.extensions
 from . import version
- 
+
 import subprocess
 import shutil
 import os
@@ -269,6 +269,7 @@ class BaseController:
         
         return self.cache.set('is_supposed_to_be_running', False)
     
+    @property
     def restarting_enabled(self):
         """Checks if Dwarf should be restarted when terminated."""
         

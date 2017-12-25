@@ -1,8 +1,7 @@
-from django.contrib.auth import get_user_model
 import discord
 
-from dwarf.api import CacheAPI
-from dwarf.models import Guild, Channel, Role, Member, Message
+from dwarf.controller import CacheController
+from dwarf.models import User, Guild, Channel, Role, Member, Message
 
 
 class PrefixNotFound(Exception):
@@ -34,7 +33,7 @@ class CoreController:
     """
 
     def __init__(self, bot=None):
-        self.cache = CacheAPI(bot=bot)
+        self.cache = CacheController(bot=bot)
         self.bot = bot
 
     def enable_restarting(self):
@@ -193,9 +192,9 @@ class CoreController:
         """
         
         if isinstance(user, discord.User) or isinstance(user, discord.Member):
-            return get_user_model().objects.get_or_create(id=user.id)
+            return User.objects.get_or_create(id=user.id)
         else:
-            return get_user_model().objects.get_or_create(id=user)
+            return User.objects.get_or_create(id=user)
 
     def user_is_registered(self, user):
         """Checks whether a ˋUserˋ is registered in the database.
@@ -208,15 +207,15 @@ class CoreController:
         
         if isinstance(user, discord.User) or isinstance(user, discord.Member):
             try:
-                get_user_model().objects.get(id=user.id)
+                User.objects.get(id=user.id)
                 return True
-            except get_user_model().DoesNotExist:
+            except User.DoesNotExist:
                 return False
         else:
             try:
-                get_user_model().objects.get(id=user)
+                User.objects.get(id=user)
                 return True
-            except get_user_model().DoesNotExist:
+            except User.DoesNotExist:
                 return False
 
     def get_guild(self, guild):

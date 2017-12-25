@@ -13,12 +13,12 @@ class Bot(commands.Bot):
     """Represents a Discord bot."""
 
     def __init__(self, loop=None):
-        self.base = BaseController(bot=self)
-        self.core = CoreController(bot=self)
-        self.cache = CacheController(bot=self)
+        self.base = BaseController()
+        self.core = CoreController()
         super().__init__(command_prefix=self.core.get_prefixes(), loop=loop, description=self.core.get_description(),
                          pm_help=None, cache_auth=False, command_not_found=strings.command_not_found,
                          command_has_no_subcommands=strings.command_has_no_subcommands)
+        self.cache = CacheController(bot=self)
         self.add_check(self.user_allowed)
 
     @property
@@ -76,13 +76,13 @@ class Bot(commands.Bot):
 
     def clear(self):
         self._closed.clear()
-        self._ready.clear()
-        self._connection.clear()
+        self._is_ready.clear()
+        self.connection.clear()
         self.http.recreate()
     
     def load_cogs(self):
         def load_cog(cogname):
-            self.load_extension('dwarf.' + cogname + '.commands')
+            self.load_extension('dwarf.' + cogname + '.cog')
 
         load_cog('core')
 
@@ -104,12 +104,12 @@ class Bot(commands.Bot):
 
         return core_cog
 
-    def user_allowed(self, author):
+    def user_allowed(self, ctx):
         # bots are not allowed to interact with other bots
-        if author.bot:
+        if ctx.message.author.bot:
             return False
 
-        if self.core.get_owner_id() == author.id:
+        if self.core.get_owner_id() == ctx.message.author.id:
             return True
 
         # TODO

@@ -3,7 +3,7 @@ import discord
 from discord.ext import commands
 
 from dwarf import permissions, formatting as f
-from dwarf.api import BaseAPI, ExtensionAlreadyInstalled, ExtensionNotFound, ExtensionNotInIndex
+from dwarf.controller import BaseController, ExtensionAlreadyInstalled, ExtensionNotFound, ExtensionNotInIndex
 from dwarf.models import Guild, Channel, User
 from dwarf.utils import answer_to_boolean, is_boolean_answer
 from .controller import CoreController, PrefixAlreadyExists, PrefixNotFound
@@ -22,7 +22,7 @@ class Core:
     def __init__(self, bot):
         self.bot = bot
         self.core = CoreController(bot=bot)
-        self.base = BaseAPI(bot=bot)
+        self.base = BaseController(bot=bot)
         self.log = logging.getLogger('dwarf.core.cog')
         self.session = aiohttp.ClientSession(loop=self.bot.loop)
 
@@ -759,7 +759,8 @@ class Core:
 
     async def on_logout(self):
         self.bot.stop_loop()
-        del self.bot
+        if not self.base.restarting_enabled:
+            self.bot.loop.close()
 
     @commands.command(pass_context=True, no_pm=True)
     @permissions.owner()

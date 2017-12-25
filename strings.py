@@ -38,7 +38,7 @@ keep_updated = "Make sure to keep Dwarf updated by using the {}update command."
 
 official_server = "Official server: {}"
 
-invite_link = "https://discord.me/AileenLumina"
+invite_link = "https://discord.gg/rAHwvyE"
 
 update_the_api = """\nYou are using an outdated discord.py.\n
 Update using pip3 install -U discord.py"""
