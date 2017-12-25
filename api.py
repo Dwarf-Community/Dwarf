@@ -12,11 +12,7 @@ import os
 import stat
 import importlib
 import pip
-
-
-cache_config = settings.DWARF_CACHE_BACKEND['redis']
-
-redis = RedisCache('{}:{}'.format(cache_config['HOST'], cache_config['PORT']), {'password': cache_config['PASSWORD']})
+import asyncio
 
 
 class ExtensionAlreadyInstalled(Exception):
@@ -38,12 +34,10 @@ class CacheAPI:
 
     Parameters
     ----------
-    app : Optional[str]
-        If specified, the :class:`CacheAPI` stores data in that app's own storage area.
     extension : Optional[str]
         If specified, the :class:`CacheAPI` stores data in that
         extension's own storage area. The actual keys will be
-        `extension + '_' + key`; similar applies for channels when
+        ``extension + '_' + key``; similar applies for channels when
         using :meth:`publish` or :meth:`subscribe`.
     bot
         The bot used to dispatch subscription events.
@@ -52,8 +46,6 @@ class CacheAPI:
     -----------
     backend
         The cache backend the :class:`CacheAPI` connects to.
-    app : Optional[str]
-        If specified, the :class:`CacheAPI` stores data in that app's own storage area.
     extension : Optional[str]
         If specified, the :class:`CacheAPI` stores data in that
         extension's own storage area.
@@ -62,7 +54,9 @@ class CacheAPI:
     """
     
     def __init__(self, extension='', bot=None, loop=None):
-        self.backend = redis
+        self.config = settings.DWARF_CACHE_BACKEND['redis']
+        self.backend = RedisCache('{}:{}'.format(self.config['HOST'], self.config['PORT']),
+                                  {'db': self.config['DB'], 'password': self.config['PASSWORD']})
         self.extension = extension
         self.bot = bot
         if self.bot is not None and loop is None:
@@ -82,8 +76,8 @@ class CacheAPI:
         if self.loop is not None and loop is None:
             loop = self.loop
         return await aioredis.create_redis(
-            'redis://{}:{}'.format(cache_config['HOST'], cache_config['PORT']),
-            db=cache_config['DB'], password=cache_config['PASSWORD'], loop=loop)
+            'redis://{}:{}'.format(self.config['HOST'], self.config['PORT']),
+            db=self.config['DB'], password=self.config['PASSWORD'], loop=loop)
     
     def get(self, key, default=None):
         """Retrieves a key's value from the cache.
@@ -109,6 +103,10 @@ class CacheAPI:
         ----------
         key : str
             The key to set in the cache.
+        value
+            The value to assign to the key.
+        timeout : Optional[int]
+            After this amount of time (in seconds), the key will be deleted.
         """
         
         if self.extension:
@@ -125,8 +123,7 @@ class CacheAPI:
         """
         
         if self.extension:
-            for key in keys:
-                key = extension + '_' + key
+            keys = [self.extension + '_' + key for key in keys]
         return self.backend.get_many(keys=keys)
     
     def set_many(self, data, timeout=None):
@@ -143,7 +140,8 @@ class CacheAPI:
         
         if self.extension:
             for key in data:
-                key = self.extension + '_' + key
+                value = data.pop(key)
+                data[self.extension + '_' + key] = value
         return self.backend.set_many(data=data, timeout=timeout)
     
     def delete(self, key):
@@ -440,12 +438,12 @@ class BaseAPI:
     @staticmethod
     def delete_extension(extension):
         def onerror(func, path, exc_info):
-            """`shutil.rmtree` error handler that helps deleting read-only files on Windows."""
+            """``shutil.rmtree`` error handler that helps deleting read-only files on Windows."""
             if not os.access(path, os.W_OK):
                 os.chmod(path, stat.S_IWUSR)
                 func(path)
             else:
-                raise
+                raise exc_info[0](exc_info[1])
         
         return shutil.rmtree('dwarf/' + extension, onerror=onerror)
     
