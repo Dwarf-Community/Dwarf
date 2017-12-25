@@ -640,7 +640,7 @@ class Core:
 
     @set.command(pass_context=True)
     @permissions.owner()
-    async def description(self, ctx, description):
+    async def description(self, ctx, *, description):
         """Sets the bot's description."""
 
         self.core.set_description(description)
