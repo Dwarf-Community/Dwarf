@@ -52,7 +52,7 @@ class Core:
             os.system('clear')
         
         print('------')
-        # print(strings.bot_is_online.format(self.bot.user.name))
+        print(strings.bot_is_online.format(self.bot.user.name))
         print('------')
         print(strings.connected_to)
         print(strings.connected_to_servers.format(Guild.objects.count()))
