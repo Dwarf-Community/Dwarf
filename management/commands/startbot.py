@@ -1,17 +1,16 @@
+from django.core.management.base import BaseCommand
+
 import importlib
 import asyncio
 
 
-class Command:
-    def __init__(self):
-        pass
+class Command(BaseCommand):
     
-    def run_from_argv(self, argv):
+    def handle(self):
         loop = asyncio.get_event_loop()
+        bot = None
         while True:
             bot_module = importlib.import_module('dwarf.bot')
-            bot_module.main()
-            # if loop.is_running():
-                # bot_module.cleanup(loop)
-            if not bot_module.base.restarting_enabled():
+            bot = bot_module.main(loop, bot)
+            if bot_module.base.restarting_enabled():
                 break
