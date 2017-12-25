@@ -844,9 +844,13 @@ class Core:
         """Shows information about the bot."""
         # [p]info
 
-        await self.bot.say(strings.info.format(
-            self.core.get_repository(),
-            self.core.get_official_invite()))
+        await self.bot.say("{}\n"
+                           "**Repository:**\n"
+                           "<{}>\n"
+                           "**Official server:**\n"
+                           "<{}>".format(self.core.get_description(),
+                                         self.core.get_repository(),
+                                         self.core.get_official_invite()))
 
     async def leave_confirmation(self, server, owner, ctx):
         if not ctx.message.channel.is_private:

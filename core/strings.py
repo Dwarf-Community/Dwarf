@@ -1,13 +1,6 @@
 """Externalized strings for better structure and easier localization"""
 
 
-info = str("This is an instance of Dwarf, the "
-           "Discord Web Application Framework created by AileenLumina.\n"
-           "**Repository:**\n"
-           "<{}>\n"
-           "**Official server:**\n"
-           "<{}>")
-
 failed_to_install = "Failed to install '**{}**'."
 
 failed_to_update = "Failed to update '**{}**'."
