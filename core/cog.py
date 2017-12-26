@@ -4,7 +4,6 @@ from discord.ext import commands
 
 from dwarf import permissions, formatting as f
 from dwarf.controller import BaseController, ExtensionAlreadyInstalled, ExtensionNotFound, ExtensionNotInIndex
-from dwarf.models import Guild, Channel, User
 from dwarf.utils import answer_to_boolean, is_boolean_answer
 from .controller import CoreController, PrefixAlreadyExists, PrefixNotFound
 from . import strings
@@ -25,51 +24,6 @@ class Core:
         self.base = BaseController(bot=bot)
         self.log = logging.getLogger('dwarf.core.cog')
         self.session = aiohttp.ClientSession(loop=self.bot.loop)
-
-    async def on_command_completion(self, command, ctx):
-        author = ctx.message.author
-        user = User.objects.get_or_create(id=author.id)[0]
-        user_already_registered = User.objects.filter(id=author.id).exists()
-        user.command_count += 1
-        user.save()
-        if not user_already_registered:
-            await self.bot.send_message(author, strings.user_registered.format(author.name))
-
-    async def on_ready(self):
-        if self.core.get_owner_id() is None:
-            await self.bot.set_bot_owner()
-        
-        restarted_from = self.core.get_restarted_from()
-        if restarted_from is not None:
-            restarted_from = self.bot.get_channel(restarted_from)
-            await self.bot.send_message(restarted_from, "I'm back!")
-            self.core.reset_restarted_from()
-        
-        # clear terminal screen
-        if os.name == 'nt':
-            os.system('cls')
-        else:
-            os.system('clear')
-        
-        print('------')
-        print(strings.bot_is_online.format(self.bot.user.name))
-        print('------')
-        print(strings.connected_to)
-        print(strings.connected_to_servers.format(Guild.objects.count()))
-        print(strings.connected_to_channels.format(Channel.objects.count()))
-        print(strings.connected_to_users.format(User.objects.count()))
-        print("\n{} active cogs".format(len(self.base.get_extensions())))
-        prefix_label = strings.prefix_singular
-        if len(self.core.get_prefixes()) > 1:
-            prefix_label = strings.prefix_plural
-        print("{}: {}\n".format(prefix_label, " ".join(list(self.core.get_prefixes()))))
-        print("------\n")
-        print(strings.use_this_url)
-        url = await self.bot.get_oauth_url()
-        self.bot.oauth_url = url
-        print(url)
-        print("\n------")
-        self.core.enable_restarting()
 
     @commands.command(name='eval', pass_context=True, hidden=True)
     @permissions.owner()
@@ -663,9 +617,9 @@ class Core:
         self.core.set_official_invite(invite)
         await self.bot.say("My official server invite is now:\n<" + invite + ">")
 
-    @add.command(pass_context=True)
+    @add.command(name='prefix', pass_context=True)
     @permissions.owner()
-    async def prefix(self, prefix):
+    async def add_prefix(self, ctx, prefix):
         """Adds a prefix to the bot."""
         
         if prefix.startswith('"') and prefix.endswith('"'):
@@ -679,9 +633,9 @@ class Core:
             await self.bot.say("The prefix '**" + prefix + "**' could not be added "
                                "as it is already a prefix.")
 
-    @remove.command(pass_context=True)
+    @remove.command(name='prefix', pass_context=True)
     @permissions.owner()
-    async def prefix(self, ctx, prefix):
+    async def remove_prefix(self, ctx, prefix):
         """Removes a prefix from the bot."""
         
         if prefix.startswith('"') and prefix.endswith('"'):
@@ -692,7 +646,7 @@ class Core:
             self.bot.command_prefix = self.core.get_prefixes()
             await self.bot.say("The prefix '**" + prefix + "**' was removed successfully.")
         except PrefixNotFound:
-            await self.bot.say("The prefix '**" + prefix + "**' could not be found.")
+            await self.bot.say("'**" + prefix + "**' is not a prefix of this bot.")
 
     @get.command(pass_context=True)
     @permissions.owner()
@@ -720,10 +674,15 @@ class Core:
         print("Shutting down...")
         await self.bot.logout()
     
-    async def on_restart_message(self, allow_restart):
+    async def on_restart_message(self, message):
         print("Restarting...")
         await self.bot.logout()
         print("Logged out.")
+
+    async def on_logout(self):
+        self.bot.stop_loop()
+        if not self.base.restarting_enabled():
+            self.bot.loop.close()
     
     @commands.command(pass_context=True)
     @permissions.owner()
@@ -757,11 +716,6 @@ class Core:
             if check.__name__ == "is_owner_check":
                 return False
         return comm_obj
-
-    async def on_logout(self):
-        self.bot.stop_loop()
-        if not self.base.restarting_enabled:
-            self.bot.loop.close()
 
     @commands.command(pass_context=True, no_pm=True)
     @permissions.owner()
@@ -840,8 +794,8 @@ class Core:
         else:
             await self.bot.say("Your message has been sent.")
 
-    @commands.command()
-    async def about(self):
+    @commands.command(pass_context=True)
+    async def about(self, ctx):
         """Shows information about the bot."""
         # [p]info
 

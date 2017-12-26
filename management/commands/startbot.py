@@ -12,7 +12,7 @@ class Command(BaseCommand):
         while True:
             bot_module = importlib.import_module('dwarf.bot')
             bot = bot_module.main(loop=loop, bot=bot)
-            if not bot.base.restarting_enabled:
+            if not bot.base.restarting_enabled():
                 break
             else:
                 bot.clear()

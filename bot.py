@@ -3,8 +3,10 @@ from discord.ext import commands
 
 from .controller import CacheController, BaseController
 from .core.controller import CoreController
+from .models import Guild, Channel, User
 from . import strings
 
+import os
 import traceback
 import asyncio
 
@@ -52,6 +54,50 @@ class Bot(commands.Bot):
 
         print(strings.setup_finished)
         input("\n")
+
+    async def on_command_completion(self, command, ctx):
+        author = ctx.message.author
+        user = User.objects.get_or_create(id=author.id)[0]
+        user_already_registered = User.objects.filter(id=author.id).exists()
+        user.command_count += 1
+        user.save()
+        if not user_already_registered:
+            await self.send_message(author, strings.user_registered.format(author.name))
+
+    async def on_ready(self):
+        if self.core.get_owner_id() is None:
+            await self.set_bot_owner()
+
+        restarted_from = self.core.get_restarted_from()
+        if restarted_from is not None:
+            restarted_from = discord.Object(restarted_from)
+            await self.send_message(restarted_from, "I'm back!")
+            self.core.reset_restarted_from()
+
+        # clear terminal screen
+        if os.name == 'nt':
+            os.system('cls')
+        else:
+            os.system('clear')
+
+        print('------')
+        print(strings.bot_is_online.format(self.user.name))
+        print('------')
+        print(strings.connected_to)
+        print(strings.connected_to_servers.format(Guild.objects.count()))
+        print(strings.connected_to_channels.format(Channel.objects.count()))
+        print(strings.connected_to_users.format(User.objects.count()))
+        print("\n{} active cogs".format(len(self.base.get_extensions())))
+        prefix_label = strings.prefix_singular
+        if len(self.core.get_prefixes()) > 1:
+            prefix_label = strings.prefix_plural
+        print("{}: {}\n".format(prefix_label, " ".join(list(self.core.get_prefixes()))))
+        print("------\n")
+        print(strings.use_this_url)
+        url = await self.get_oauth_url()
+        print(url)
+        print("\n------")
+        self.core.enable_restarting()
 
     async def logout(self):
         await self.close()

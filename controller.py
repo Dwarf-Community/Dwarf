@@ -268,8 +268,7 @@ class BaseController:
         """Prevents Dwarf from restarting for the rest of the current session."""
         
         return self.cache.set('is_supposed_to_be_running', False)
-    
-    @property
+
     def restarting_enabled(self):
         """Checks if Dwarf should be restarted when terminated."""
         

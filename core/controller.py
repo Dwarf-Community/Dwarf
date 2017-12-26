@@ -131,6 +131,8 @@ class CoreController:
         """
         
         prefixes = self.get_prefixes()
+        if prefix not in prefixes:
+            raise PrefixNotFound
         prefixes.remove(prefix)
         self.set_prefixes(prefixes, bot=bot)
 
