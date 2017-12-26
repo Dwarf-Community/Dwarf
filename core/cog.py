@@ -644,6 +644,7 @@ class Core:
         """Sets the bot's description."""
 
         self.core.set_description(description)
+        self.bot.description = description
         await self.bot.say("My description has been set.")
 
     @set.command(pass_context=True)
