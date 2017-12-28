@@ -1,7 +1,8 @@
 import discord
 from discord.ext import commands
 
-from .controller import CacheController, BaseController
+from .controller import BaseController
+from .cache import Cache
 from .core.controller import CoreController
 from .models import Guild, Channel, User
 from . import strings
@@ -20,7 +21,7 @@ class Bot(commands.Bot):
         super().__init__(command_prefix=self.core.get_prefixes(), loop=loop, description=self.core.get_description(),
                          pm_help=None, cache_auth=False, command_not_found=strings.command_not_found,
                          command_has_no_subcommands=strings.command_has_no_subcommands)
-        self.cache = CacheController(bot=self)
+        self.cache = Cache(bot=self)
         self.add_check(self.user_allowed)
 
     @property

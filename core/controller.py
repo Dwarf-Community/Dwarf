@@ -1,6 +1,6 @@
 import discord
 
-from dwarf.controller import CacheController
+from dwarf.cache import Cache
 from dwarf.models import User, Guild, Channel, Role, Member, Message
 
 
@@ -26,14 +26,14 @@ class CoreController:
     
     Attributes
     ----------
-    cache : :class:`CacheController`
-        The cache backend connection of the API.
+    cache : :class:`Cache`
+        The cache backend connection of the controller.
     bot
         The bot that will be restarted, shut down etc.
     """
 
     def __init__(self, bot=None):
-        self.cache = CacheController(bot=bot)
+        self.cache = Cache(bot=bot)
         self.bot = bot
 
     def enable_restarting(self):

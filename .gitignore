@@ -1,4 +1,4 @@
-.idea
-*/migrations
+/.idea
+/migrations
 *__pycache__
 *.pyc
