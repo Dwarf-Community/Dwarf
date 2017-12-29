@@ -17,14 +17,6 @@ from discord.ext import commands
 core = CoreController()
 
 
-def is_owner_check(ctx):
-    return ctx.message.author.id == core.get_owner_id()
-
-
-def owner():
-    return commands.check(is_owner_check)
-
-
 async def is_admin_check(ctx):
     is_admin = False
     author = ctx.message.author
@@ -40,23 +32,18 @@ def admin():
 
 
 def has_permissions(ctx, perms):
-    if is_owner_check(ctx):
-        return True
-
     ch = ctx.message.channel
     author = ctx.message.author
     resolved = ch.permissions_for(author)
     return all(getattr(resolved, name, None) == value for name, value in perms.items())
 
 
-def serverowner():
+def guildowner():
     def predicate(ctx):
-        if ctx.message.server is None:
+        if ctx.message.guild is None:
             return False
 
-        if ctx.message.author.id == ctx.message.server.owner.id:
+        if ctx.message.author.id == ctx.message.guild.owner.id:
             return True
-
-        # return check_permissions(ctx, perms)
         return False
     return commands.check(predicate)

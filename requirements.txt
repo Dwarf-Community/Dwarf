@@ -1,8 +1,8 @@
-django>=1.11,<2.0
+django
 redis
 aioredis
 hiredis
 django-redis-cache
 djangorestframework
 psycopg2
-discord.py>=0.16,<1.0
+git+https://github.com/Rapptz/discord.py@rewrite

@@ -5,7 +5,7 @@ from .controller import BaseController
 from .cache import Cache
 from .core.controller import CoreController
 from .models import Guild, Channel, User
-from . import strings
+from . import strings, utils
 
 import os
 import traceback
@@ -56,14 +56,14 @@ class Bot(commands.Bot):
         print(strings.setup_finished)
         input("\n")
 
-    async def on_command_completion(self, command, ctx):
+    async def on_command_completion(self, ctx):
         author = ctx.message.author
         user = User.objects.get_or_create(id=author.id)[0]
         user_already_registered = User.objects.filter(id=author.id).exists()
         user.command_count += 1
         user.save()
         if not user_already_registered:
-            await self.send_message(author, strings.user_registered.format(author.name))
+            await ctx.send(strings.user_registered.format(author.name))
 
     async def on_ready(self):
         if self.core.get_owner_id() is None:
@@ -71,8 +71,8 @@ class Bot(commands.Bot):
 
         restarted_from = self.core.get_restarted_from()
         if restarted_from is not None:
-            restarted_from = discord.Object(restarted_from)
-            await self.send_message(restarted_from, "I'm back!")
+            restarted_from = self.get_channel(restarted_from)
+            await restarted_from.send("I'm back!")
             self.core.reset_restarted_from()
 
         # clear terminal screen
@@ -102,7 +102,6 @@ class Bot(commands.Bot):
 
     async def logout(self):
         await self.close()
-        self._is_logged_in.clear()
         self.dispatch('logout')
     
     def stop_loop(self):
@@ -120,12 +119,6 @@ class Bot(commands.Bot):
             gathered.cancel()
         else:
             self.loop.stop()
-
-    def clear(self):
-        self._closed.clear()
-        self._is_ready.clear()
-        self.connection.clear()
-        self.http.recreate()
     
     def load_cogs(self):
         def load_cog(cogname):
@@ -181,31 +174,53 @@ class Bot(commands.Bot):
         
         return command_as_subcommand
 
-    async def wait_for_choice(self, author, channel, message, choices: iter, timeout=0):
+    async def wait_for_response(self, ctx, message_check=None, timeout=60):
+        def response_check(message):
+            is_response = ctx.message.author == message.author and ctx.message.channel == message.channel
+            return is_response and message_check(message) if callable(message_check) else True
+
+        try:
+            response = await self.wait_for('message', check=response_check, timeout=timeout)
+        except asyncio.TimeoutError:
+            return
+        return response
+
+    async def wait_for_answer(self, ctx, timeout=60):
+        def answer_check(message):
+            return utils.is_boolean_answer(message)
+
+        answer = await self.wait_for_response(ctx, message_check=answer_check, timeout=timeout)
+        if answer is None:
+            return
+        return utils.answer_to_boolean(answer)
+
+    async def wait_for_choice(self, ctx, choices: list, timeout=60):
         choice_format = "**{}**: {}"
         choice_messages = []
 
         def choice_check(message):
-            return int(message.content[0]) - 1 in range(len(choices))
-        
-        for i in range(choices):
+            return message.content[0] - 1 in range(len(choices))
+
+        for i in range(len(choices)):
             choice_messages.append(choice_format.format(i + 1, choices[i]))
-        
+
         choices_message = "\n".join(choice_messages)
-        final_message = "{}\n\n{}".format(message, choices_message)
-        await self.send_message(channel, final_message)
-        return await self.wait_for_message(author=author, channel=channel,
-                                           check=choice_check, timeout=timeout)
+        final_message = "{}\n\n{}".format(ctx.message, choices_message)
+        await ctx.send(final_message)
+        choice = await self.wait_for_response(ctx, message_check=choice_check, timeout=timeout)
+        if choice is None:
+            return
+        return int(choice)
 
     async def send_command_help(self, ctx):
         if ctx.invoked_subcommand:
-            pages = self.formatter.format_help_for(ctx, ctx.invoked_subcommand)
+            pages = await self.formatter.format_help_for(ctx, ctx.invoked_subcommand)
             for page in pages:
-                await self.send_message(ctx.message.channel, page)
+                await ctx.send(page)
         else:
-            pages = self.formatter.format_help_for(ctx, ctx.command)
+            pages = await self.formatter.format_help_for(ctx, ctx.command)
             for page in pages:
-                await self.send_message(ctx.message.channel, page)
+                await ctx.send(page)
 
     async def get_oauth_url(self):
         try:

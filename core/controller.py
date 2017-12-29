@@ -59,10 +59,8 @@ class CoreController:
     def set_restarted_from(self, channel):
         """Sets the channel the bot was restarted from."""
         
-        if isinstance(channel, discord.Channel):
+        if isinstance(channel, discord.TextChannel) or isinstance(channel, discord.DMChannel):
             channel = channel.id
-        else:
-            channel = str(channel)
         return self.cache.set('restarted_from', channel)
     
     def reset_restarted_from(self):
@@ -184,7 +182,8 @@ class CoreController:
         
         self.cache.set('official_invite', invite_link)
 
-    def get_user(self, user):
+    @staticmethod
+    def get_user(user):
         """Retrieves a Dwarf `User` object from the database.
         
         Parameters
@@ -198,7 +197,8 @@ class CoreController:
         else:
             return User.objects.get_or_create(id=user)
 
-    def user_is_registered(self, user):
+    @staticmethod
+    def user_is_registered(user):
         """Checks whether a ˋUserˋ is registered in the database.
         
         Parameters
@@ -220,35 +220,38 @@ class CoreController:
             except User.DoesNotExist:
                 return False
 
-    def get_guild(self, guild):
+    @staticmethod
+    def get_guild(guild):
         """Retrieves a Dwarf `Guild` object from the database.
         
         Parameters
         ----------
         guild  
-            Can be a Discord `Server` object or a guild ID.
+            Can be a Discord `guild` object or a guild ID.
         """
 
-        if isinstance(guild, discord.Server):
+        if isinstance(guild, discord.Guild):
             return Guild.objects.get(id=guild.id)
         else:
             return Guild.objects.get(id=guild)
 
-    def new_guild(self, guild):
+    @staticmethod
+    def new_guild(guild):
         """Creates a new Dwarf ˋGuildˋ object and connects it to the database.
         
         Parameters
         ----------
         guild
-            Can be a Discord ˋServerˋ object or a guild ID.
+            Can be a Discord ˋguildˋ object or a guild ID.
         """
         
-        if isinstance(guild, discord.Server):
+        if isinstance(guild, discord.Guild):
             return Guild(id=guild.id)
         else:
             return Guild(id=guild)
 
-    def get_channel(self, channel):
+    @staticmethod
+    def get_channel(channel):
         """Retrieves a Dwarf ˋChannelˋ object from the database.
         
         Parameters
@@ -257,25 +260,25 @@ class CoreController:
             Can be a Discord ˋChannelˋ object or a channel ID.
         """
 
-        if isinstance(channel, discord.Channel):
+        if isinstance(channel, discord.TextChannel):
             return Channel.objects.get(id=channel.id)
         else:
             return Channel.objects.get(id=channel)
 
     def new_channel(self, channel, guild=None):
-        """Creates a new Dwarf ˋGuildˋ object and connects it to the database.
+        """Creates a new Dwarf ˋChannelˋ object and connects it to the database.
         
         Parameters
         ----------
         channel
             Can be a Discord ˋChannelˋ object or a channel ID.
         guild : Optional
-            Can be a Discord ˋServerˋ object or a guild ID.
+            Can be a Discord ˋguildˋ object or a guild ID.
             Is not an optional parameter if ˋchannelˋ is not a Discord ˋChannelˋ object.
         """
         
-        if isinstance(channel, discord.Channel):
-            return Channel(id=channel.id, guild=channel.server.id)
+        if isinstance(channel, discord.TextChannel):
+            return Channel(id=channel.id, guild=channel.guild.id)
         else:
             if guild is None:
                 raise ValueError("Either a Channel object or both channel ID "
@@ -304,7 +307,7 @@ class CoreController:
         role
             Can be a Discord ˋRoleˋ object or a role ID.
         guild : Optional
-            Can be a Discord ˋServerˋ object or a guild ID.
+            Can be a Discord ˋGuildˋ object or a guild ID.
             Is not an optional parameter if ˋroleˋ is not a Discord ˋRoleˋ object.
         """
         
@@ -327,12 +330,12 @@ class CoreController:
         user : Optional
             Can be a Discord `User` object or a user ID.
         guild : Optional
-            Can be a Discord ˋServerˋ object or a guild ID.
+            Can be a Discord ˋGuildˋ object or a guild ID.
         """
         
         if isinstance(member, discord.Member):
             user_id = member.id
-            guild_id = member.server.id
+            guild_id = member.guild.id
         else:
             if user is None or guild is None:
                 raise ValueError("Either a Member object or both user ID "
@@ -341,7 +344,7 @@ class CoreController:
                 user_id = user.id
             else:
                 user_id = user
-            if isinstance(guild, discord.Server):
+            if isinstance(guild, discord.Guild):
                 guild_id = guild.id
             else:
                 guild_id = guild
@@ -359,12 +362,12 @@ class CoreController:
         user : Optional
             Can be a Discord `User` object or a user ID.
         guild : Optional
-            Can be a Discord ˋServerˋ object or a guild ID.
+            Can be a Discord ˋGuildˋ object or a guild ID.
         """
         
         if isinstance(member, discord.Member):
             user_id = member.id
-            guild_id = member.server.id
+            guild_id = member.guild.id
         else:
             if user is None or guild is None:
                 raise ValueError("Either a Member object or both user ID "
@@ -373,7 +376,7 @@ class CoreController:
                 user_id = user.id
             else:
                 user_id = user
-            if isinstance(guild, discord.Server):
+            if isinstance(guild, discord.Guild):
                 guild_id = guild.id
             else:
                 guild_id = guild

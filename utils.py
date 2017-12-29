@@ -17,7 +17,7 @@ def answer_to_boolean(answer):
 def is_boolean_answer(message):
     if isinstance(message, discord.Message):
         message = message.content
-    return message.lower().startswith('y') or message.content.lower().startswith('n')
+    return message.lower().startswith('y') or message.lower().startswith('n')
 
 
 def estimate_read_time(text):
