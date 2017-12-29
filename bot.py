@@ -63,7 +63,7 @@ class Bot(commands.Bot):
         user.command_count += 1
         user.save()
         if not user_already_registered:
-            await ctx.send(strings.user_registered.format(author.name))
+            await author.send(strings.user_registered.format(author.name))
 
     async def on_ready(self):
         if self.core.get_owner_id() is None:
