@@ -1,4 +1,5 @@
 from django.core.management.base import BaseCommand
+from django.conf import settings
 
 import importlib
 import asyncio
@@ -8,6 +9,8 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         loop = asyncio.get_event_loop()
+        if settings.DEBUG:
+            loop.set_debug(True)
         bot = None
         while True:
             bot_module = importlib.import_module('dwarf.bot')
