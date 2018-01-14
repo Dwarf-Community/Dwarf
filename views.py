@@ -1,14 +1,15 @@
 from django.shortcuts import render
-from dwarf.serializers import *
-from dwarf.models import *
-from dwarf.permissions import IsAdminThenAllPerms
+from dwarf.serializers import GuildSerializer, ChannelSerializer, RoleSerializer, MemberSerializer, MessageSerializer, StringSerializer
+from dwarf.models import Guild, Channel, Role, Member, Message, String
+from dwarf.permissions import GuildPermissions
 from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticated
 from rest_framework import viewsets
+from rest_framework.decorators import detail_route, list_route
 
 
 def estimate_read_time(string):
     read_time = len(string) * 1000  # in milliseconds
-    read_time /= 15  # Assuming 15 chars per second 
+    read_time /= 15  # Assuming 15 chars per second
     if read_time < 2400:
         read_time = 2400  # Minimum is 2.4 seconds
     return read_time
@@ -71,14 +72,4 @@ class StringViewSet(viewsets.ModelViewSet):
     """
     queryset = String.objects.all()
     serializer_class = StringSerializer
-    permission_classes = (IsAuthenticatedOrReadOnly,IsAdminThenAllPerms,)
-
-
-class LogViewSet(viewsets.ModelViewSet):
-    """
-    This viewset automatically provides `list`, `create`, `retrieve`,
-    `update` and `destroy` actions for the log model.
-    """
-    queryset = Log.objects.all()
-    serializer_class = LogSerializer
     permission_classes = ()

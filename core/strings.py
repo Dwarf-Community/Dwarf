@@ -10,6 +10,12 @@ info = str("This is an instance of Dwarf, the "
 
 failed_to_install = "Failed to install '**{}**'."
 
+failed_to_update = "Failed to update '**{}**'."
+
+specify_extension_name = "Please specify a name for this extension (must be a valid Python package name)."
+
+skipping_this_extension = "Not installing this extension."
+
 unsatisfied_requirements = "Missing required packages:"
 
 unsatisfied_dependencies = "Missing required extensions:"

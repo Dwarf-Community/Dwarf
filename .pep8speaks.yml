@@ -1,0 +1,20 @@
+message:  # Customize the comment made by the bot
+    opened:  # Messages when a new PR is submitted
+        header: "Hello @{name}, thank you for submitting the pull request!"
+                # The keyword {name} is converted into the author's username
+        footer: "See [PEP 8](https://www.python.org/dev/peps/pep-0008/) for more information."
+    updated:  # Messages when new commits are added to the PR
+        header: "Hello @{name}, thank you for updating the pull request!"
+        footer: ""
+    no_errors: "Good job, there are no PEP 8 issues in this pull request! :thumb_up:"
+
+scanner:
+    diff_only: True  # If True, errors caused by only the patch are shown
+
+pycodestyle:
+    max-line-length: 79
+    ignore:  # Errors and warnings to ignore
+        - E121
+        - E123
+        - E126
+        - W503
