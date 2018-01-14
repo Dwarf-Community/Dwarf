@@ -27,6 +27,6 @@ urlpatterns = [
 extensions = base.get_extensions()
 for extension in extensions:
     try:
-        urlpatterns.append(url(r'^' + extension + r'/',include('dwarf.' + extension + '.urls')))
+        urlpatterns.append(url(r'^' + extension + r'/', include('dwarf.' + extension + '.urls')))
     except ImportError:
         pass

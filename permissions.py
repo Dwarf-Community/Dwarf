@@ -49,12 +49,10 @@ def guildowner():
     return commands.check(predicate)
 
 
-#REST Framework Permissions
+# REST Framework Permissions
 
 
 class GuildPermissions(BasePermission):
-
-
     def has_permission(self, request, view):
         if request.user.is_superuser:
             return True        
@@ -74,8 +72,6 @@ class GuildPermissions(BasePermission):
             
 
 class StringPermissions(BasePermission):
-    
-
     def has_permission(self, request, view):
         if request.user.is_superuser:
             return True        
@@ -90,8 +86,6 @@ class StringPermissions(BasePermission):
 
 
 class MessagePermissions(BasePermission):
-
-
     def has_permission(self, request, view):
         if request.user.is_superuser:
             return True        
@@ -102,8 +96,6 @@ class MessagePermissions(BasePermission):
 
 
 class UserPermissions(BasePermission):
-
-
     def has_permission(self, request, view):
         if request.user.is_superuser:
             return True
@@ -114,8 +106,6 @@ class UserPermissions(BasePermission):
 
 
 class MemberPermissions(BasePermission):
-
-
     def has_permission(self, request, view):
         if request.user.is_superuser:
             return True
@@ -134,8 +124,6 @@ class MemberPermissions(BasePermission):
 
 
 class RolePermissions(BasePermission):
-
-
     def has_permission(self, request, view):
         if request.user.is_superuser:
             return True
@@ -155,8 +143,6 @@ class RolePermissions(BasePermission):
 
 
 class ChannelPermissions(BasePermission):
-
-    
     def has_permission(self, request, view):
         if request.user.is_superuser:
             return True
