@@ -1,7 +1,7 @@
 from django.shortcuts import render
-from dwarf.serializers import *
-from dwarf.models import User, Guild, Channel, Role, Member, Message, String, Log
-from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticated
+from dwarf.serializers import GuildSerializer, ChannelSerializer, RoleSerializer, MemberSerializer, MessageSerializer, StringSerializer
+from dwarf.models import Guild, Channel, Role, Member, Message, String
+from dwarf.permissions import GuildPermissions, ChannelPermissions, RolePermissions, MemberPermissions, MessagePermissions, StringPermissions
 from rest_framework import viewsets
 
 
@@ -20,7 +20,7 @@ class GuildViewSet(viewsets.ModelViewSet):
     """
     queryset = Guild.objects.all()
     serializer_class = GuildSerializer
-    permission_classes = ()
+    permission_classes = (GuildPermissions,)
 
 
 class ChannelViewSet(viewsets.ModelViewSet):
@@ -30,7 +30,7 @@ class ChannelViewSet(viewsets.ModelViewSet):
     """
     queryset = Channel.objects.all()
     serializer_class = ChannelSerializer
-    permission_classes = ()
+    permission_classes = (ChannelPermissions,)
 
 
 class RoleViewSet(viewsets.ModelViewSet):
@@ -40,7 +40,7 @@ class RoleViewSet(viewsets.ModelViewSet):
     """
     queryset = Role.objects.all()
     serializer_class = RoleSerializer
-    permission_classes = ()
+    permission_classes = (RolePermissions,)
 
 
 class MemberViewSet(viewsets.ModelViewSet):
@@ -50,7 +50,7 @@ class MemberViewSet(viewsets.ModelViewSet):
     """
     queryset = Member.objects.all()
     serializer_class = MemberSerializer
-    permission_classes = ()
+    permission_classes = (MemberPermissions,)
 
 
 class MessageViewSet(viewsets.ModelViewSet):
@@ -60,7 +60,7 @@ class MessageViewSet(viewsets.ModelViewSet):
     """
     queryset = Message.objects.all()
     serializer_class = MessageSerializer
-    permission_classes = ()
+    permission_classes = (MessagePermissions,)
 
 
 class StringViewSet(viewsets.ModelViewSet):
@@ -70,14 +70,4 @@ class StringViewSet(viewsets.ModelViewSet):
     """
     queryset = String.objects.all()
     serializer_class = StringSerializer
-    permission_classes = IsAuthenticatedOrReadOnly
-
-
-class LogViewSet(viewsets.ModelViewSet):
-    """
-    This viewset automatically provides `list`, `create`, `retrieve`,
-    `update` and `destroy` actions for the log model.
-    """
-    queryset = Log.objects.all()
-    serializer_class = LogSerializer
-    permission_classes = ()
+    permission_classes = (StringPermissions,)

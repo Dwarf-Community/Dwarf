@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from dwarf.models import *
+from dwarf.models import Guild, Channel, Role, Member, Message, String, Log
 
 
 class GuildSerializer(serializers.ModelSerializer):
@@ -43,9 +43,3 @@ class StringSerializer(serializers.ModelSerializer):
         model = String
         fields = ('__all__')
 
-
-class LogSerializer(serializers.ModelSerializer):
-    """Serializes the Log model"""
-    class Meta:
-        model = Log
-        fields = ('__all__')

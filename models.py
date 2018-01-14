@@ -11,7 +11,8 @@ base = BaseController()
 
 class User(AbstractBaseUser):
     id = models.BigIntegerField(primary_key=True)
-    is_admin = models.BooleanField(default=False, db_index=True)
+    is_superuser = models.BooleanField(default=False, db_index=True)
+    is_staff = models.BooleanField(default=False, db_index=True)
     command_count = models.IntegerField(default=0)
 
     USERNAME_FIELD = 'id'
