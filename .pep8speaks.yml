@@ -12,7 +12,7 @@ scanner:
     diff_only: True  # If True, errors caused by only the patch are shown
 
 pycodestyle:
-    max-line-length: 79
+    max-line-length: 120
     ignore:  # Errors and warnings to ignore
         - E121
         - E123

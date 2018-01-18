@@ -1,4 +1,4 @@
 __doc__ = open('dwarf/README.md').read()
 
 
-version = "0.9.0b"
+__version__ = "0.11.0b"

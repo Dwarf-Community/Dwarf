@@ -2,7 +2,7 @@ from django.core import management
 
 import dwarf.extensions
 from .cache import Cache
-from . import version
+from . import __version__
 
 import subprocess
 import shutil
@@ -305,4 +305,4 @@ class BaseController:
     def get_dwarf_version():
         """Returns Dwarf's version."""
         
-        return version
+        return __version__

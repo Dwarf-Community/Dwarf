@@ -71,6 +71,8 @@ not_available_in_dm = "That command is not available in DMs."
 
 command_has_no_subcommands = "Command {0.name} has no subcommands."
 
+group_help = "{} command group"
+
 owner_recognized = "{} has been recognized and set as owner."
 
 user_registered = """{}, thanks for using my commands!

@@ -1,15 +1,23 @@
 import discord
 from discord.ext import commands
+import aiohttp
 
+from utils import restart_after_disconnect
 from .controller import BaseController
 from .cache import Cache
 from .core.controller import CoreController
 from .models import Guild, Channel, User
-from . import strings, utils
+from . import strings, utils, __version__
 
 import os
+import sys
+import inspect
 import traceback
 import asyncio
+
+
+class CommandConflict(Exception):
+    pass
 
 
 class Bot(commands.Bot):
@@ -21,8 +29,12 @@ class Bot(commands.Bot):
         super().__init__(command_prefix=self.core.get_prefixes(), loop=loop, description=self.core.get_description(),
                          pm_help=None, cache_auth=False, command_not_found=strings.command_not_found,
                          command_has_no_subcommands=strings.command_has_no_subcommands)
-        self.cache = Cache(bot=self)
+        self._cache = Cache(bot=self)
         self.add_check(self.user_allowed)
+        self.extra_tasks = {}
+        user_agent = 'Dwarf (https://github.com/Dwarf-Community/Dwarf {0}) Python/{1} aiohttp/{2} discord.py/{3}'
+        self.http.user_agent = user_agent.format(__version__, sys.version.split()[0],
+                                                 aiohttp.__version__, discord.__version__,)
 
     @property
     def is_configured(self):
@@ -101,9 +113,9 @@ class Bot(commands.Bot):
         self.core.enable_restarting()
 
     async def logout(self):
-        await self.close()
+        super().logout()
         self.dispatch('logout')
-    
+
     def stop_loop(self):
         def silence_gathered(future):
             try:
@@ -119,7 +131,101 @@ class Bot(commands.Bot):
             gathered.cancel()
         else:
             self.loop.stop()
-    
+
+    def add_cog(self, cog):
+        super().add_cog(cog)
+
+        members = inspect.getmembers(cog)
+        for name, member in members:
+            # register tasks the cog has
+            if name.startswith('do_'):
+                print("found task " + name)
+                self.add_task(member, name=name, resume_check=self.core.restarting_enabled)
+
+    def _resolve_groups(self, cog_or_command=None):
+        if cog_or_command is None:
+            for cog in self.cogs.values():
+                return self._resolve_groups(cog)
+        elif isinstance(cog_or_command, commands.Command):
+            # if command is in a group
+            if '_' in cog_or_command.name:
+                # resolve groups recursively
+                group = cog_or_command.name.split('_')[-2]
+                if group in self.all_commands:
+                    if not isinstance(self.all_commands[group], commands.Group):
+                        raise CommandConflict("cannot group command {0} under {1} because {1} is "
+                                              "already a command".format(cog_or_command.name, group))
+                    else:
+                        self.all_commands[group].add_command(cog_or_command)
+                        return self._resolve_groups(cog_or_command)
+                else:
+                    async def group_command(ctx):
+                        if ctx.invoked_subcommand is None:
+                            await self.send_command_help(ctx)
+
+                    description = strings.group_help.format(group)
+                    group_command = self.group(name=group, invoke_without_command=True,
+                                               help=description, description=description)(group_command)
+                    return self._resolve_groups(group_command)
+            else:
+                return cog_or_command
+
+    def create_task(self, coro, resume_check=None, *args, **kwargs):
+        def actual_resume_check():
+            return resume_check() and not self.is_closed()
+
+        async def pause():
+            if not self.is_ready():
+                await asyncio.wait((self.wait_for('resumed'), self.wait_for('ready')),
+                                   loop=self.loop, return_when=asyncio.FIRST_COMPLETED)
+
+        return self.loop.create_task(restart_after_disconnect(pause, actual_resume_check,
+                                                              self.wait_until_ready)(coro)(*args, **kwargs))
+
+    def add_task(self, coro, name=None, unique=True, resume_check=None):
+        """The non decorator alternative to :meth:`.task`.
+
+        Parameters
+        -----------
+        coro : coroutine
+            The extra coro to register and execute in the background.
+        name : Optional[str]
+            The name of the coro to register as a task. Defaults to ``coro.__name__``.
+        unique : Optional[bool]
+            If this is ``True``, tasks with the same name that are already in
+            :attr:`extra_tasks` will not be overwritten, and the original task will
+            not be cancelled. Defaults to ``True``.
+        resume_check : Optional[predicate]
+            A predicate used to determine whether a task should be
+            cancelled on logout or restarted instead when the bot is
+            ready again. Defaults to ``None``, in which case the task
+            will be cancelled on logout.
+
+        Example
+        --------
+
+        .. code-block:: python3
+
+            async def do_stuff: pass
+            async def my_message(message): pass
+
+            bot.add_task(do_stuff)
+            bot.add_task(my_other_task, name='do_something_else')
+
+        """
+        if not asyncio.iscoroutinefunction(coro):
+            raise discord.ClientException('Tasks must be coroutines')
+
+        name = coro.__name__ if name is None else name
+
+        if name in self.extra_tasks:
+            if not unique:
+                self.extra_tasks[name].append(self.create_task(coro, resume_check))
+            else:
+                return
+        else:
+            self.extra_tasks[name] = [coro]
+
     def load_cogs(self):
         def load_cog(cogname):
             self.load_extension('dwarf.' + cogname + '.cog')
@@ -142,6 +248,8 @@ class Bot(commands.Bot):
         if failed:
             print("\nFailed to load: " + ", ".join(failed))
 
+        self._resolve_groups()
+
         return core_cog
 
     def user_allowed(self, ctx):
@@ -152,13 +260,88 @@ class Bot(commands.Bot):
         if self.core.get_owner_id() == ctx.message.author.id:
             return True
 
-        # TODO
+        # TODO blacklisting users
 
         return True
 
+    def task(self, unique=True, resume_check=None):
+        """A decorator that registers a task to execute in the background.
+
+        The task must accept only one argument (usually called ``state``),
+        if not, ``TypeError``\ is raised. The ``state`` passed is a ``dict``.
+        If a task is running when the Client disconnects from Discord
+        because it logged itself out, it will cancel the execution of the
+        task. If the Client loses the connection to Discord because
+        of network issues or similar, it will cancel the execution of the task,
+        wait for itself to reconnect, then restart the task with the
+        ``state`` it had when it was cancelled.
+
+        Examples
+        ---------
+
+        Creating a task that executes once on startup: ::
+
+            @bot.task
+            async def say_hello(state):
+                step = state.setdefault('step', 1)
+                if step == 1:
+                    print('Step 1')
+                    step = state['step'] = 2
+                if step == 2:
+                    print('Step 2')
+                    step = state['step'] = 3
+                if step == 3:
+                    print('Step 3')
+                return
+
+        Creating a task inside a cog that will execute continuously: ::
+
+            async def do_say_hello_every_minute(self):
+                seconds_passed = state.setdefault('seconds_passed', 0)
+                while True:
+                    if seconds_passed == 60:
+                        print("Hello World!")
+                        seconds_passed = state['seconds_passed'] = 0
+                    yield from asyncio.sleep(1)
+                    seconds_passed = state['seconds_passed'] += 1
+
+        Creating a task from a coroutine function dynamically: ::
+
+            bot.task(my_coroutine_function)
+
+        Parameters
+        ------------
+        unique : Optional[bool]
+            If this is ``True``, tasks with the same name that are already in
+            :attr:`tasks` will not be overwritten, and the original task will
+            not be cancelled. Defaults to ``True``.
+        resume_check : Optional[predicate]
+            A predicate used to determine whether a task should be
+            cancelled on logout or restarted instead when the bot is
+            ready again. Defaults to ``None``, in which case the task
+            will be cancelled on logout.
+
+        Raises
+        -------
+        TypeError
+            The decorated ``coro`` is not a coroutine function.
+        """
+
+        async def wrapped(coro):
+            if not asyncio.iscoroutinefunction(coro):
+                raise TypeError('task registered must be a coroutine function')
+
+            name = coro.__name__
+            if hasattr(self, name):
+                if unique:
+                    return coro
+            self.extra_tasks[name] = self.create_task(coro, resume_check)
+
+        return wrapped
+
     def subcommand(self, command_group, cog='Core'):
         """A decorator that adds a command to a command group.
-        
+
         Parameters
         ----------
         command_group : str
@@ -166,12 +349,12 @@ class Bot(commands.Bot):
         cog : str
             The name of the cog the command group belongs to. Defaults to 'Core'.
         """
-        
+
         def command_as_subcommand(command):
             cog_obj = self.get_cog(cog)
             getattr(cog_obj, command_group).add_command(command)
             return command
-        
+
         return command_as_subcommand
 
     async def wait_for_response(self, ctx, message_check=None, timeout=60):
@@ -257,10 +440,10 @@ class Bot(commands.Bot):
 def main(loop=None, bot=None):
     if loop is None:
         loop = asyncio.get_event_loop()
-    
+
     if bot is None:
         bot = Bot(loop=loop)
-    
+
     if not bot.is_configured:
         bot.initial_config()
 
