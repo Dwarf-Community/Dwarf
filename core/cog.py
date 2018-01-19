@@ -1,29 +1,25 @@
-from collections import defaultdict
-
-import aiohttp
 import discord
 from discord.ext import commands
 
+from dwarf.bot import Cog
 from dwarf import formatting as f
 from dwarf.controller import BaseController, ExtensionAlreadyInstalled, ExtensionNotFound, ExtensionNotInIndex
 from .controller import CoreController, PrefixAlreadyExists, PrefixNotFound
 from . import strings
 
+from collections import defaultdict
 import asyncio
-import logging
 import traceback
 import time
 
 
-class Core:
+class Core(Cog):
     """All commands that relate to management operations."""
 
-    def __init__(self, bot):
-        self.bot = bot
-        self.core = CoreController(bot=bot)
-        self.base = BaseController(bot=bot)
-        self.log = logging.getLogger('dwarf.core.cog')
-        self.session = aiohttp.ClientSession(loop=self.bot.loop)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.core = CoreController(bot=self.bot)
+        self.base = BaseController(bot=self.bot)
 
     @commands.command(name='eval', hidden=True)
     @commands.is_owner()
@@ -782,5 +778,5 @@ class Core:
 
 
 def setup(bot):
-    core = Core(bot)
+    core = Core(bot, '')
     bot.add_cog(core)

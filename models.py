@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import signals
 from django.contrib.auth.models import AbstractBaseUser
 
 from .controller import BaseController
@@ -15,7 +16,6 @@ class User(AbstractBaseUser):
     command_count = models.IntegerField(default=0)
 
     USERNAME_FIELD = 'id'
-    REQUIRED_FIELDS = []
 
     def get_full_name(self):
         return str(self.id)
@@ -71,6 +71,24 @@ class Log(models.Model):
 
 # Importing models introduced by extensions.
 # Kinda hacky but there seems to be no clean way to do this.
+def add_extension_prefix(sender, **kwargs):
+    """Prefix the db_table name of the model with
+    the name of the extension the model belongs to
+
+    :type sender: django.db.models.Model
+    """
+    try:
+        extension = sender._meta.extension
+    except AttributeError:
+        return
+    if not sender._meta.db_table.startswith(sender._meta.extension + '_'):
+        sender._meta.db_table = extension + '_' + sender._meta.db_table
+
+
+signals.pre_init.connect(add_extension_prefix)
+signals.class_prepared.connect(add_extension_prefix)
+
+
 extensions = base.get_extensions()
 for extension in extensions:
     try:
@@ -81,6 +99,7 @@ for extension in extensions:
             to_import = models_module.__all__
         except AttributeError:
             to_import = [name for name in module_dict if not name.startswith('_')]
+
         globals().update({name: module_dict[name] for name in to_import})
     except ImportError:
         pass

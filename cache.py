@@ -162,7 +162,7 @@ class Cache:
         channels = await redis.subscribe('channel:' + channel)
         actual_channel = channels[0]
         try:
-            while (await actual_channel.wait_message()):
+            while await actual_channel.wait_message():
                 message = await actual_channel.get(encoding='utf-8')
                 self.bot.dispatch(channel + '_message', message)
                 if limit == 1:

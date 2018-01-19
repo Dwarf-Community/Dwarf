@@ -13,11 +13,24 @@ import os
 import sys
 import inspect
 import traceback
+import logging
 import asyncio
 
 
 class CommandConflict(Exception):
     pass
+
+
+class Cog:
+    def __init__(self, bot, extension, log=True, cache=False, session=False):
+        self.bot = bot
+        self.extension = extension
+        if log:
+            self.log = logging.getLogger('dwarf.' + extension + '.cog')
+        if cache:
+            self.cache = Cache(extension, bot=bot)
+        if session:
+            self.session = aiohttp.ClientSession(loop=bot.loop)
 
 
 class Bot(commands.Bot):
@@ -33,15 +46,12 @@ class Bot(commands.Bot):
         self.add_check(self.user_allowed)
         self.extra_tasks = {}
         user_agent = 'Dwarf (https://github.com/Dwarf-Community/Dwarf {0}) Python/{1} aiohttp/{2} discord.py/{3}'
-        self.http.user_agent = user_agent.format(__version__, sys.version.split()[0],
+        self.http.user_agent = user_agent.format(__version__, sys.version.split(maxsplit=1)[0],
                                                  aiohttp.__version__, discord.__version__,)
 
     @property
     def is_configured(self):
-        if self.base.get_token() is None:
-            return False
-        else:
-            return True
+        return self.base.get_token() is None
 
     def initial_config(self):
         print(strings.setup_greeting)
@@ -144,31 +154,42 @@ class Bot(commands.Bot):
 
     def _resolve_groups(self, cog_or_command=None):
         if cog_or_command is None:
-            for cog in self.cogs.values():
-                return self._resolve_groups(cog)
+            for extension in ['core'] + self.base.get_extensions():
+                # find the extension's cog
+                cog = next(filter(lambda _cog: _cog.extension == extension, self.cogs.values()))
+                self._resolve_groups(cog)
+
+        elif isinstance(cog_or_command, Cog):
+            for name, member in inspect.getmembers(cog_or_command):
+                if isinstance(member, commands.Command):
+                    self._resolve_groups(member)
+
         elif isinstance(cog_or_command, commands.Command):
             # if command is in a group
             if '_' in cog_or_command.name:
                 # resolve groups recursively
-                group = cog_or_command.name.split('_')[-2]
-                if group in self.all_commands:
-                    if not isinstance(self.all_commands[group], commands.Group):
-                        raise CommandConflict("cannot group command {0} under {1} because {1} is "
-                                              "already a command".format(cog_or_command.name, group))
-                    else:
-                        self.all_commands[group].add_command(cog_or_command)
-                        return self._resolve_groups(cog_or_command)
+                entire_group, command_name = cog_or_command.name.rsplit('_', 1)
+                group_name = entire_group.rsplit('_', 1)[1]
+                if group_name in self.all_commands:
+                    if not isinstance(self.all_commands[group_name], commands.Group):
+                        raise CommandConflict("cannot group command {0} under {1} because {1} is already a "
+                                              "command".format(command_name, group_name))
+                    group_command = self.all_commands[group_name]
                 else:
-                    async def group_command(ctx):
+                    async def groupcmd(ctx):
                         if ctx.invoked_subcommand is None:
                             await self.send_command_help(ctx)
 
-                    description = strings.group_help.format(group)
-                    group_command = self.group(name=group, invoke_without_command=True,
-                                               help=description, description=description)(group_command)
-                    return self._resolve_groups(group_command)
-            else:
-                return cog_or_command
+                    group_help = strings.group_help.format(group_name)
+                    group_command = self.group(name=entire_group, invoke_without_command=True,
+                                               help=group_help)(groupcmd)
+                    self._resolve_groups(group_command)
+
+                cog_or_command.name = command_name
+                group_command.add_command(cog_or_command)
+
+        else:
+            raise TypeError("cog_or_command must be either a cog, a command or None")
 
     def create_task(self, coro, resume_check=None, *args, **kwargs):
         def actual_resume_check():
