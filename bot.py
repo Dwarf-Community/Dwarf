@@ -2,7 +2,6 @@ import discord
 from discord.ext import commands
 import aiohttp
 
-from utils import restart_after_disconnect
 from .controller import BaseController
 from .cache import Cache
 from .core.controller import CoreController
@@ -51,7 +50,7 @@ class Bot(commands.Bot):
 
     @property
     def is_configured(self):
-        return self.base.get_token() is None
+        return self.base.get_token() is not None
 
     def initial_config(self):
         print(strings.setup_greeting)
@@ -154,7 +153,7 @@ class Bot(commands.Bot):
 
     def _resolve_groups(self, cog_or_command=None):
         if cog_or_command is None:
-            for extension in ['core'] + self.base.get_extensions():
+            for extension in [''] + self.base.get_extensions():
                 # find the extension's cog
                 cog = next(filter(lambda _cog: _cog.extension == extension, self.cogs.values()))
                 self._resolve_groups(cog)
@@ -169,7 +168,7 @@ class Bot(commands.Bot):
             if '_' in cog_or_command.name:
                 # resolve groups recursively
                 entire_group, command_name = cog_or_command.name.rsplit('_', 1)
-                group_name = entire_group.rsplit('_', 1)[1]
+                group_name = entire_group.rsplit('_', 1)[0]
                 if group_name in self.all_commands:
                     if not isinstance(self.all_commands[group_name], commands.Group):
                         raise CommandConflict("cannot group command {0} under {1} because {1} is already a "
@@ -200,7 +199,7 @@ class Bot(commands.Bot):
                 await asyncio.wait((self.wait_for('resumed'), self.wait_for('ready')),
                                    loop=self.loop, return_when=asyncio.FIRST_COMPLETED)
 
-        return self.loop.create_task(restart_after_disconnect(pause, actual_resume_check,
+        return self.loop.create_task(utils.restart_after_disconnect(pause, actual_resume_check,
                                                               self.wait_until_ready)(coro)(*args, **kwargs))
 
     def add_task(self, coro, name=None, unique=True, resume_check=None):
