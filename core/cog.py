@@ -612,31 +612,6 @@ class Core(Cog):
         t2 = time.perf_counter()
         await ctx.send("Pong.\nTime: " + str(round((t2-t1)*1000)) + "ms")
 
-    async def on_shutdown_message(self, message):
-        self.core.disable_restarting()
-        print("Shutting down...")
-        await self.bot.logout()
-
-    async def on_restart_message(self, message):
-        print("Restarting...")
-        await self.bot.logout()
-        print("Logged out.")
-
-    async def do_wait_for_shutdown(self):
-        print("do_wait_for_shutdown started")
-        await self.core.cache.subscribe('shutdown', 1)
-        print("do_wait_for_shutdown ended")
-
-    async def do_wait_for_restart(self):
-        print("do_wait_for_restart started")
-        await self.core.cache.subscribe('restart', 1)
-        print("do_wait_for_restart ended")
-
-    async def on_logout(self):
-        self.bot.stop_loop()
-        if not self.base.restarting_enabled():
-            self.bot.loop.close()
-
     @commands.command()
     @commands.is_owner()
     async def shutdown(self, ctx):

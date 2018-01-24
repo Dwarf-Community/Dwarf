@@ -37,7 +37,7 @@ class Cache:
                                   {'db': self.config['DB'], 'password': self.config['PASSWORD']})
         self.extension = extension
         self.bot = bot
-        if self.bot is not None and loop is None:
+        if loop is None and self.bot is not None and hasattr(bot, 'loop'):
             self.loop = bot.loop
         else:
             self.loop = loop
@@ -167,7 +167,7 @@ class Cache:
                 self.bot.dispatch(channel + '_message', message)
                 if limit == 1:
                     break
-                else:
+                elif limit is not None:
                     limit -= 1
 
             await redis.unsubscribe(actual_channel)

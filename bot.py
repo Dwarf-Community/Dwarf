@@ -36,17 +36,21 @@ class Bot(commands.Bot):
     """Represents a Discord bot."""
 
     def __init__(self, loop=None):
-        self.base = BaseController()
-        self.core = CoreController()
+        self.base = BaseController(self)
+        self.core = CoreController(self)
         super().__init__(command_prefix=self.core.get_prefixes(), loop=loop, description=self.core.get_description(),
                          pm_help=None, cache_auth=False, command_not_found=strings.command_not_found,
                          command_has_no_subcommands=strings.command_has_no_subcommands)
+        self.base.cache.loop = self.loop
+        self.core.cache.loop = self.loop
         self._cache = Cache(bot=self)
         self.add_check(self.user_allowed)
+        self._main_task = None
+        self._core_tasks = [self.create_task(self.wait_for_restart), self.create_task(self.wait_for_shutdown)]
         self.extra_tasks = {}
         user_agent = 'Dwarf (https://github.com/Dwarf-Community/Dwarf {0}) Python/{1} aiohttp/{2} discord.py/{3}'
         self.http.user_agent = user_agent.format(__version__, sys.version.split(maxsplit=1)[0],
-                                                 aiohttp.__version__, discord.__version__,)
+                                                 aiohttp.__version__, discord.__version__)
 
     @property
     def is_configured(self):
@@ -122,8 +126,8 @@ class Bot(commands.Bot):
         self.core.enable_restarting()
 
     async def logout(self):
-        super().logout()
-        self.dispatch('logout')
+        await super().logout()
+        self.stop_loop()
 
     def stop_loop(self):
         def silence_gathered(future):
@@ -135,11 +139,16 @@ class Bot(commands.Bot):
         # cancel lingering tasks
         pending = asyncio.Task.all_tasks(loop=self.loop)
         if pending:
+            for core_task in self._core_tasks:
+                pending.discard(core_task)
+            pending.discard(self._main_task)
             gathered = asyncio.gather(*pending, loop=self.loop)
             gathered.add_done_callback(silence_gathered)
             gathered.cancel()
         else:
             self.loop.stop()
+
+        self.dispatch('loop_stopped')
 
     def add_cog(self, cog):
         super().add_cog(cog)
@@ -148,7 +157,6 @@ class Bot(commands.Bot):
         for name, member in members:
             # register tasks the cog has
             if name.startswith('do_'):
-                print("found task " + name)
                 self.add_task(member, name=name, resume_check=self.core.restarting_enabled)
 
     def _resolve_groups(self, cog_or_command=None):
@@ -199,8 +207,8 @@ class Bot(commands.Bot):
                 await asyncio.wait((self.wait_for('resumed'), self.wait_for('ready')),
                                    loop=self.loop, return_when=asyncio.FIRST_COMPLETED)
 
-        return self.loop.create_task(utils.restart_after_disconnect(pause, actual_resume_check,
-                                                              self.wait_until_ready)(coro)(*args, **kwargs))
+        return self.loop.create_task(utils.restart_after_disconnect(pause, self.wait_until_ready,
+                                                                    actual_resume_check)(coro)(*args, **kwargs))
 
     def add_task(self, coro, name=None, unique=True, resume_check=None):
         """The non decorator alternative to :meth:`.task`.
@@ -246,6 +254,21 @@ class Bot(commands.Bot):
         else:
             self.extra_tasks[name] = [coro]
 
+    async def wait_for_shutdown(self):
+        await self.core.cache.subscribe('shutdown')
+
+    async def wait_for_restart(self):
+        await self.core.cache.subscribe('restart')
+
+    async def on_shutdown_message(self, message):
+        self.core.disable_restarting()
+        print("Shutting down...")
+        await self.logout()
+
+    async def on_restart_message(self, message):
+        print("Restarting...")
+        await self.logout()
+
     def load_cogs(self):
         def load_cog(cogname):
             self.load_extension('dwarf.' + cogname + '.cog')
@@ -273,10 +296,6 @@ class Bot(commands.Bot):
         return core_cog
 
     def user_allowed(self, ctx):
-        # bots are not allowed to interact with other bots
-        if ctx.message.author.bot:
-            return False
-
         if self.core.get_owner_id() == ctx.message.author.id:
             return True
 
@@ -355,9 +374,14 @@ class Bot(commands.Bot):
             if hasattr(self, name):
                 if unique:
                     return coro
-            self.extra_tasks[name] = self.create_task(coro, resume_check)
+            setattr(self, name, self.create_task(coro, resume_check))
 
         return wrapped
+
+    def run_tasks(self):
+        members = inspect.getmembers(self)
+        for name, member in [_member for _member in members if _member[0].startswith('do')]:
+            self.create_task(member)
 
     def subcommand(self, command_group, cog='Core'):
         """A decorator that adds a command to a command group.
@@ -443,18 +467,24 @@ class Bot(commands.Bot):
         print(strings.owner_recognized.format(data.owner.name))
 
     async def run(self):
+        self._main_task = asyncio.Task.current_task(loop=self.loop)
+
         self.load_cogs()
+
         if self.core.get_prefixes():
             self.command_prefix = list(self.core.get_prefixes())
         else:
             print(strings.no_prefix_set)
             self.command_prefix = ["!"]
 
+        self.run_tasks()
+
         print(strings.logging_into_discord)
         print(strings.keep_updated.format(self.command_prefix[0]))
         print(strings.official_server.format(strings.invite_link))
 
         await self.start(self.base.get_token())
+        await self.wait_for('loop_stopped')
 
 
 def main(loop=None, bot=None):
