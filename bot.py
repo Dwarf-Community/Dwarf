@@ -127,9 +127,9 @@ class Bot(commands.Bot):
 
     async def logout(self):
         await super().logout()
-        self.stop_loop()
+        self.stop()
 
-    def stop_loop(self):
+    def stop(self):
         def silence_gathered(future):
             try:
                 future.result()
@@ -148,7 +148,7 @@ class Bot(commands.Bot):
         else:
             self.loop.stop()
 
-        self.dispatch('loop_stopped')
+        self.dispatch('stopped')
 
     def add_cog(self, cog):
         super().add_cog(cog)
@@ -192,6 +192,7 @@ class Bot(commands.Bot):
                                                help=group_help)(groupcmd)
                     self._resolve_groups(group_command)
 
+                self.all_commands.pop(cog_or_command.name)
                 cog_or_command.name = command_name
                 group_command.add_command(cog_or_command)
 
@@ -383,24 +384,6 @@ class Bot(commands.Bot):
         for name, member in [_member for _member in members if _member[0].startswith('do')]:
             self.create_task(member)
 
-    def subcommand(self, command_group, cog='Core'):
-        """A decorator that adds a command to a command group.
-
-        Parameters
-        ----------
-        command_group : str
-            The name of the command group to add the decorated command to.
-        cog : str
-            The name of the cog the command group belongs to. Defaults to 'Core'.
-        """
-
-        def command_as_subcommand(command):
-            cog_obj = self.get_cog(cog)
-            getattr(cog_obj, command_group).add_command(command)
-            return command
-
-        return command_as_subcommand
-
     async def wait_for_response(self, ctx, message_check=None, timeout=60):
         def response_check(message):
             is_response = ctx.message.author == message.author and ctx.message.channel == message.channel
@@ -484,7 +467,8 @@ class Bot(commands.Bot):
         print(strings.official_server.format(strings.invite_link))
 
         await self.start(self.base.get_token())
-        await self.wait_for('loop_stopped')
+
+        await self.wait_for('stopped')
 
 
 def main(loop=None, bot=None):

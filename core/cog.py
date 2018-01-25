@@ -358,49 +358,9 @@ class Core(Cog):
                 await ctx.send("Okay, I'll be right back!")
                 await self.core.restart(restarted_from=ctx.message.channel)
 
-    @commands.group()
-    async def set(self, ctx):
-        """Group of commands that change the bot's settings."""
-        # [p]set <subcommand>
-
-        if ctx.invoked_subcommand is None:
-            await self.bot.send_command_help(ctx)
-
-    @commands.group()
-    async def get(self, ctx):
-        """Group of commands that show the bot's settings."""
-        # [p]set <subcommand>
-
-        if ctx.invoked_subcommand is None:
-            await self.bot.send_command_help(ctx)
-
-    @commands.group()
-    async def add(self, ctx):
-        """Group of commands that add items to some of the bot's settings."""
-        # [p]add <subcommand>
-
-        if ctx.invoked_subcommand is None:
-            await self.bot.send_command_help(ctx)
-
-    @commands.group()
-    async def remove(self, ctx):
-        """Group of commands that remove items from some of the bot's settings."""
-        # [p]remove <subcommand>
-
-        if ctx.invoked_subcommand is None:
-            await self.bot.send_command_help(ctx)
-
-    @commands.group()
-    async def setup(self, ctx):
-        """Group of commands that configure and prepare things."""
-        # [p]setup <subcommand>
-
-        if ctx.invoked_subcommand is None:
-            await self.bot.send_command_help(ctx)
-
-    @set.command()
+    @commands.command()
     @commands.is_owner()
-    async def name(self, ctx, *, name):
+    async def set_name(self, ctx, *, name):
         """Sets the bot's name."""
         # [p]set name <name>
 
@@ -410,9 +370,9 @@ class Core(Cog):
         else:
             await self.bot.send_command_help(ctx)
 
-    @set.command()
+    @commands.command()
     @commands.is_owner()
-    async def nickname(self, ctx, *, nickname=""):
+    async def set_nickname(self, ctx, *, nickname=""):
         """Sets the bot's nickname on the current server.
         Leaving this empty will remove it."""
         # [p]set nickname <nickname>
@@ -426,9 +386,9 @@ class Core(Cog):
         except discord.Forbidden:
             await ctx.send("I cannot do that, I lack the \"Change Nickname\" permission.")
 
-    @set.command()
+    @commands.command()
     @commands.is_owner()
-    async def game(self, ctx, *, game=None):
+    async def set_game(self, ctx, *, game=None):
         """Sets the bot's playing status
         Leaving this empty will clear it."""
         # [p]set game <game>
@@ -446,9 +406,9 @@ class Core(Cog):
             await self.bot.change_presence(game=None, status=current_status)
             await ctx.send('Not playing a game now.')
 
-    @set.command()
+    @commands.command()
     @commands.is_owner()
-    async def status(self, ctx, *, status=None):
+    async def set_status(self, ctx, *, status=None):
         """Sets the bot's status
         Statuses:
             online
@@ -481,9 +441,9 @@ class Core(Cog):
             else:
                 await self.bot.send_command_help(ctx)
 
-    @set.command()
+    @commands.command()
     @commands.is_owner()
-    async def stream(self, ctx, streamer=None, *, stream_title=None):
+    async def set_stream(self, ctx, streamer=None, *, stream_title=None):
         """Sets the bot's streaming status.
         Leaving both streamer and stream_title empty will clear it."""
         # [p]set stream <streamer> <stream_title>
@@ -507,9 +467,9 @@ class Core(Cog):
             self.log.debug('stream cleared by owner')
         await ctx.send("Done.")
 
-    @set.command()
+    @commands.command()
     @commands.is_owner()
-    async def avatar(self, ctx, url):
+    async def set_avatar(self, ctx, url):
         """Sets the bot's avatar."""
         # [p]set avatar <url>
 
@@ -525,9 +485,9 @@ class Core(Cog):
             self.log.exception(e)
             traceback.print_exc()
 
-    @set.command()
+    @commands.command()
     @commands.is_owner()
-    async def token(self, ctx, token):
+    async def set_token(self, ctx, token):
         """Sets the bot's login token."""
         # [p]set token <token>
 
@@ -538,32 +498,32 @@ class Core(Cog):
         else:
             await ctx.send("Invalid token.")
 
-    @set.command()
+    @commands.command()
     @commands.is_owner()
-    async def description(self, ctx, *, description):
+    async def set_description(self, ctx, *, description):
         """Sets the bot's description."""
 
         self.core.set_description(description)
         self.bot.description = description
         await ctx.send("My description has been set.")
 
-    @set.command()
+    @commands.command()
     @commands.is_owner()
-    async def repository(self, ctx, repository):
+    async def set_repository(self, ctx, repository):
         """Sets the bot's repository."""
 
         self.core.set_repository(repository)
         await ctx.send("My repository is now located at:\n<" + repository + ">")
 
-    @set.command()
+    @commands.command()
     @commands.is_owner()
-    async def officialinvite(self, ctx, invite):
+    async def set_officialinvite(self, ctx, invite):
         """Sets the bot's official server's invite URL."""
 
         self.core.set_official_invite(invite)
         await ctx.send("My official server invite is now:\n<" + invite + ">")
 
-    @add.command(name='prefix')
+    @commands.command()
     @commands.is_owner()
     async def add_prefix(self, ctx, prefix):
         """Adds a prefix to the bot."""
@@ -579,7 +539,7 @@ class Core(Cog):
             await ctx.send("The prefix '**" + prefix + "**' could not be added "
                            "as it is already a prefix.")
 
-    @remove.command(name='prefix')
+    @commands.command()
     @commands.is_owner()
     async def remove_prefix(self, ctx, prefix):
         """Removes a prefix from the bot."""
@@ -591,7 +551,7 @@ class Core(Cog):
         except PrefixNotFound:
             await ctx.send("'**" + prefix + "**' is not a prefix of this bot.")
 
-    @get.command()
+    @commands.command()
     @commands.is_owner()
     async def prefixes(self, ctx):
         """Shows the bot's prefixes."""
