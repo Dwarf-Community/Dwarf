@@ -21,7 +21,7 @@ class Core(Cog):
         self.core = CoreController(bot=self.bot)
         self.base = BaseController(bot=self.bot)
 
-    @commands.command(name='eval', hidden=True)
+    @commands.command(name='eval')
     @commands.is_owner()
     async def evaluate(self, ctx, *, code):
         """Evaluates code.
@@ -53,6 +53,7 @@ class Core(Cog):
         await ctx.send(result)
 
     @commands.command()
+    @commands.is_owner()
     async def install(self, ctx, *, extensions):
         """Installs an extension."""
         # [p] install <extensions>
@@ -180,6 +181,7 @@ class Core(Cog):
                 await self.core.restart(restarted_from=ctx.message.channel)
 
     @commands.command()
+    @commands.is_owner()
     async def update(self, ctx, *, extensions):
         """Updates an extension."""
         # [p]update <extensions>
@@ -289,6 +291,7 @@ class Core(Cog):
                 await self.core.restart(restarted_from=ctx.message.channel)
 
     @commands.command()
+    @commands.is_owner()
     async def uninstall(self, ctx, *, extensions):
         """Uninstalls extensions."""
         # [p]uninstall <extensions>
@@ -580,9 +583,6 @@ class Core(Cog):
     @commands.is_owner()
     async def remove_prefix(self, ctx, prefix):
         """Removes a prefix from the bot."""
-
-        if prefix.startswith('"') and prefix.endswith('"'):
-            prefix = prefix[1:len(prefix) - 1]
 
         try:
             self.core.remove_prefix(prefix)
