@@ -710,8 +710,3 @@ class Core(Cog):
         # [p]version
 
         await ctx.send("Current version: " + self.base.get_dwarf_version())
-
-
-def setup(bot):
-    core = Core(bot, '')
-    bot.add_cog(core)

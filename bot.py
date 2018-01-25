@@ -12,6 +12,7 @@ import os
 import sys
 import inspect
 import traceback
+import importlib
 import logging
 import asyncio
 
@@ -113,7 +114,7 @@ class Bot(commands.Bot):
         print(strings.connected_to_servers.format(Guild.objects.count()))
         print(strings.connected_to_channels.format(Channel.objects.count()))
         print(strings.connected_to_users.format(User.objects.count()))
-        print("\n{} active cogs".format(len(self.base.get_extensions())))
+        print("\n{} active extensions".format(len(self.base.get_extensions())))
         prefix_label = strings.prefix_singular
         if len(self.core.get_prefixes()) > 1:
             prefix_label = strings.prefix_plural
@@ -161,10 +162,10 @@ class Bot(commands.Bot):
 
     def _resolve_groups(self, cog_or_command=None):
         if cog_or_command is None:
-            for extension in [''] + self.base.get_extensions():
+            for extension in ['core'] + self.base.get_extensions():
                 # find the extension's cog
-                cog = next(filter(lambda _cog: _cog.extension == extension, self.cogs.values()))
-                self._resolve_groups(cog)
+                for cog in [_cog for _cog in self.cogs.values() if _cog.extension == extension]:
+                    self._resolve_groups(cog)
 
         elif isinstance(cog_or_command, Cog):
             for name, member in inspect.getmembers(cog_or_command):
@@ -270,24 +271,55 @@ class Bot(commands.Bot):
         print("Restarting...")
         await self.logout()
 
-    def load_cogs(self):
-        def load_cog(cogname):
-            self.load_extension('dwarf.' + cogname + '.cog')
+    def load_extension(self, name):
+        """Loads an extension's cog module.
 
-        load_cog('core')
+        Parameters
+        ----------
+        name: str
+            The name of the extension.
+
+        Raises
+        ------
+        ImportError
+            The cog module could not be imported
+            or didn't have any ``Cog`` subclass.
+        """
+
+        if name in self.extensions:
+            return
+
+        cog_module = importlib.import_module('dwarf.' + name + '.cog')
+
+        if hasattr(cog_module, 'setup'):
+            cog_module.setup(self, name)
+        else:
+            cog_classes = inspect.getmembers(cog_module, lambda member: isinstance(member, type) and
+                                             issubclass(member, Cog) and member is not Cog)
+            for _, _Cog in cog_classes:
+                if _Cog is None:
+                    raise ImportError("The {} extension's cog module didn't have "
+                                      "any Cog subclass and no setup function".format(name))
+                self.add_cog(_Cog(self, name))
+
+        self.extensions[name] = cog_module
+        return cog_module
+
+    def _load_cogs(self):
+        self.load_extension('core')
 
         core_cog = self.get_cog('Core')
         if core_cog is None:
             raise ImportError("Could not find the Core cog.")
 
         failed = []
-        cogs = self.base.get_extensions()
-        for cog in cogs:
+        extensions = self.base.get_extensions()
+        for extension in extensions:
             try:
-                load_cog(cog)
+                self.load_extension(extension)
             except Exception as e:
                 print("{}: {}".format(e.__class__.__name__, str(e)))
-                failed.append(cog)
+                failed.append(extension)
 
         if failed:
             print("\nFailed to load: " + ", ".join(failed))
@@ -452,7 +484,7 @@ class Bot(commands.Bot):
     async def run(self):
         self._main_task = asyncio.Task.current_task(loop=self.loop)
 
-        self.load_cogs()
+        self._load_cogs()
 
         if self.core.get_prefixes():
             self.command_prefix = list(self.core.get_prefixes())
