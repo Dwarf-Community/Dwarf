@@ -47,7 +47,9 @@ class Bot(commands.Bot):
         self._cache = Cache(bot=self)
         self.add_check(self.user_allowed)
         self._main_task = None
-        self._core_tasks = [self.create_task(self.wait_for_restart), self.create_task(self.wait_for_shutdown)]
+        self._core_tasks = []
+        self.create_task(self.wait_for_restart, protect=True)
+        self.create_task(self.wait_for_shutdown, protect=True)
         self.extra_tasks = {}
         user_agent = 'Dwarf (https://github.com/Dwarf-Community/Dwarf {0}) Python/{1} aiohttp/{2} discord.py/{3}'
         self.http.user_agent = user_agent.format(__version__, sys.version.split(maxsplit=1)[0],
@@ -200,7 +202,7 @@ class Bot(commands.Bot):
         else:
             raise TypeError("cog_or_command must be either a cog, a command or None")
 
-    def create_task(self, coro, resume_check=None, *args, **kwargs):
+    def create_task(self, coro, resume_check=None, protect=False, *args, **kwargs):
         def actual_resume_check():
             return resume_check() and not self.is_closed()
 
@@ -209,8 +211,11 @@ class Bot(commands.Bot):
                 await asyncio.wait((self.wait_for('resumed'), self.wait_for('ready')),
                                    loop=self.loop, return_when=asyncio.FIRST_COMPLETED)
 
-        return self.loop.create_task(utils.restart_after_disconnect(pause, self.wait_until_ready,
+        task = self.loop.create_task(utils.restart_after_disconnect(pause, self.wait_until_ready,
                                                                     actual_resume_check)(coro)(*args, **kwargs))
+        if protect:
+            self._core_tasks.append(task)
+        return task
 
     def add_task(self, coro, name=None, unique=True, resume_check=None):
         """The non decorator alternative to :meth:`.task`.

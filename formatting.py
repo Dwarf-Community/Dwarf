@@ -32,8 +32,7 @@ def inline_code(text):
 c = inline_code
 
 def block(text, lang=""):
-    text = "```{}\n{}\n```".format(lang, text)
-    return text
+    return "```{}\n{}\n```".format(lang, text)
 
 def pagify(text, delims=[], do_escape=True, shorten_by=8, page_length=2000):
     # DOES NOT RESPECT MARKDOWN BOXES OR INLINE CODE

@@ -16,10 +16,10 @@ import time
 class Core(Cog):
     """All commands that relate to management operations."""
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.core = CoreController(bot=self.bot)
-        self.base = BaseController(bot=self.bot)
+    def __init__(self, bot, extension):
+        super().__init__(bot, extension)
+        self.core = CoreController(bot=bot)
+        self.base = BaseController(bot=bot)
 
     @commands.command(name='eval')
     @commands.is_owner()
