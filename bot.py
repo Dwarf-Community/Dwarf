@@ -4,7 +4,7 @@ import aiohttp
 
 from .controller import BaseController
 from .cache import Cache
-from .core.controller import CoreController
+from .core.controllers import CoreController
 from .models import Guild, Channel, User
 from . import strings, utils, __version__
 
@@ -26,7 +26,10 @@ class Cog:
         self.bot = bot
         self.extension = extension
         if log:
-            self.log = logging.getLogger('dwarf.' + extension + '.cog')
+            log_name = 'dwarf.' + extension + '.cogs'
+            if self.__module__ != 'cogs':
+                log_name += '.' + self.__module__
+            self.log = logging.getLogger('dwarf.' + extension + '.cogs')
         if cache:
             self.cache = Cache(extension, bot=bot)
         if session:
@@ -294,7 +297,7 @@ class Bot(commands.Bot):
         if name in self.extensions:
             return
 
-        cog_module = importlib.import_module('dwarf.' + name + '.cog')
+        cog_module = importlib.import_module('dwarf.' + name + '.cogs')
 
         if hasattr(cog_module, 'setup'):
             cog_module.setup(self, name)

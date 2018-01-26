@@ -8,7 +8,7 @@ And they can make the bot fully ignore specific channels.
 
 
 from dwarf.models import User, Role, Channel, Member
-from dwarf.core.controller import CoreController
+from dwarf.core.controllers import CoreController
 from rest_framework.permissions import BasePermission
 from discord.ext import commands
 

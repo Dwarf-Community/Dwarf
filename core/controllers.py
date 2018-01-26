@@ -18,12 +18,12 @@ class CoreController:
     """Transforms Discord objects into Dwarf objects
     that are connected to the database backend.
     Also provides some basic management and settings functions.
-    
+
     Parameters
     ----------
     bot
         The bot that will be restarted, shut down etc.
-    
+
     Attributes
     ----------
     cache : :class:`Cache`
@@ -38,56 +38,56 @@ class CoreController:
 
     def enable_restarting(self):
         """Makes Dwarf restart whenever it is terminated until `disable_restarting` is called."""
-        
+
         return self.cache.set('is_supposed_to_be_running', True)
-    
+
     def disable_restarting(self):
         """Prevents Dwarf from restarting for the rest of the current session."""
-        
+
         return self.cache.set('is_supposed_to_be_running', False)
-    
+
     def restarting_enabled(self):
         """Checks if Dwarf should be restarted when terminated."""
-        
+
         return self.cache.get('is_supposed_to_be_running', False)
-    
+
     def get_restarted_from(self):
         """Gets the ID of the channel the bot was restarted from."""
-        
+
         return self.cache.get('restarted_from')
-    
+
     def set_restarted_from(self, channel):
         """Sets the channel the bot was restarted from."""
-        
+
         if isinstance(channel, discord.TextChannel) or isinstance(channel, discord.DMChannel):
             channel = channel.id
         return self.cache.set('restarted_from', channel)
-    
+
     def reset_restarted_from(self):
         """Resets the channel the bot was restarted from."""
-        
+
         self.cache.delete('restarted_from')
-    
+
     async def restart(self, restarted_from=None):
         """Triggers the bot to restart itself."""
-        
+
         if restarted_from is not None:
             self.set_restarted_from(restarted_from)
         await self.cache.publish('restart')
-    
+
     async def shutdown(self):
         """Triggers the bot to shutdown."""
-        
+
         await self.cache.publish('shutdown')
-    
+
     def get_prefixes(self):
         """Returns a list of the bot's prefixes."""
-        
+
         return self.cache.get('prefixes', default=[])
 
     def set_prefixes(self, prefixes, bot=None):
         """Sets the bot's prefixes.
-        
+
         Parameters
         ----------
         prefixes
@@ -95,14 +95,14 @@ class CoreController:
         bot
             A `Bot` whose prefixes should be set to `prefixes`.
         """
-        
+
         if bot is not None:
             bot.command_prefix = prefixes
         self.cache.set('prefixes', prefixes)
 
     def add_prefix(self, prefix, bot=None):
         """Adds a prefix to the bot's prefixes.
-        
+
         Parameters
         ----------
         prefix
@@ -110,7 +110,7 @@ class CoreController:
         bot
             The `Bot` whose prefixes to add the `prefix` to.
         """
-        
+
         prefixes = self.get_prefixes()
         if prefix in prefixes:
             raise PrefixAlreadyExists
@@ -119,7 +119,7 @@ class CoreController:
 
     def remove_prefix(self, prefix, bot=None):
         """Removes a prefix from the bot's prefixes.
-        
+
         Parameters
         ----------
         prefix
@@ -127,7 +127,7 @@ class CoreController:
         bot
             The `Bot` whose prefixes to remove the `prefix` from.
         """
-        
+
         prefixes = self.get_prefixes()
         if prefix not in prefixes:
             raise PrefixNotFound
@@ -152,46 +152,46 @@ class CoreController:
 
     def get_repository(self):
         """Retrieves Dwarf's official repository's URL."""
-        
+
         return self.cache.get('repository')
 
     def set_repository(self, repository):
         """Sets Dwarf's official repository.
-        
+
         Parameters
         ----------
         repository
             The repository's URL.
         """
-        
+
         self.cache.set('repository', repository)
 
     def get_official_invite(self):
         """Retrieves the invite link to the Dwarf instance's official guild."""
-        
+
         return self.cache.get('official_invite')
 
     def set_official_invite(self, invite_link):
         """Sets the invite link to the bot's official guild.
-        
+
         Parameters
         ----------
         invite_link
             The URL to set the Dwarf instance's official guild's invite link to.
         """
-        
+
         self.cache.set('official_invite', invite_link)
 
     @staticmethod
     def get_user(user):
         """Retrieves a Dwarf `User` object from the database.
-        
+
         Parameters
         ----------
         user
             Can be a Discord `User` object or `Member` object, or a user ID.
         """
-        
+
         if isinstance(user, discord.User) or isinstance(user, discord.Member):
             return User.objects.get_or_create(id=user.id)
         else:
@@ -200,13 +200,13 @@ class CoreController:
     @staticmethod
     def user_is_registered(user):
         """Checks whether a ˋUserˋ is registered in the database.
-        
+
         Parameters
         ----------
         user
             Can be a Discord `User` object or `Member` object, or a user ID.
         """
-        
+
         if isinstance(user, discord.User) or isinstance(user, discord.Member):
             try:
                 User.objects.get(id=user.id)
@@ -223,10 +223,10 @@ class CoreController:
     @staticmethod
     def get_guild(guild):
         """Retrieves a Dwarf `Guild` object from the database.
-        
+
         Parameters
         ----------
-        guild  
+        guild
             Can be a Discord `guild` object or a guild ID.
         """
 
@@ -238,13 +238,13 @@ class CoreController:
     @staticmethod
     def new_guild(guild):
         """Creates a new Dwarf ˋGuildˋ object and connects it to the database.
-        
+
         Parameters
         ----------
         guild
             Can be a Discord ˋguildˋ object or a guild ID.
         """
-        
+
         if isinstance(guild, discord.Guild):
             return Guild(id=guild.id)
         else:
@@ -253,7 +253,7 @@ class CoreController:
     @staticmethod
     def get_channel(channel):
         """Retrieves a Dwarf ˋChannelˋ object from the database.
-        
+
         Parameters
         ----------
         channel
@@ -267,7 +267,7 @@ class CoreController:
 
     def new_channel(self, channel, guild=None):
         """Creates a new Dwarf ˋChannelˋ object and connects it to the database.
-        
+
         Parameters
         ----------
         channel
@@ -276,7 +276,7 @@ class CoreController:
             Can be a Discord ˋguildˋ object or a guild ID.
             Is not an optional parameter if ˋchannelˋ is not a Discord ˋChannelˋ object.
         """
-        
+
         if isinstance(channel, discord.TextChannel):
             return Channel(id=channel.id, guild=channel.guild.id)
         else:
@@ -284,16 +284,16 @@ class CoreController:
                 raise ValueError("Either a Channel object or both channel ID "
                                  "and guild ID must be given as argument(s).")
             return Channel(id=channel, guild=guild)
-    
+
     def get_role(self, role):
         """Retrieves a Dwarf ˋChannelˋ object from the database.
-        
+
         Parameters
         ----------
         role
             Can be a Discord ˋRoleˋ object or a role ID.
         """
-        
+
         if isinstance(role, discord.Role):
             return Role.objects.get(id=role.id)
         else:
@@ -301,7 +301,7 @@ class CoreController:
 
     def new_role(self, role, guild=None):
         """Creates a new Dwarf ˋRoleˋ object and connects it to the database.
-        
+
         Parameters
         ----------
         role
@@ -310,7 +310,7 @@ class CoreController:
             Can be a Discord ˋGuildˋ object or a guild ID.
             Is not an optional parameter if ˋroleˋ is not a Discord ˋRoleˋ object.
         """
-        
+
         if isinstance(role, discord.Role):
             return Role(id=role.id)
         else:
@@ -322,7 +322,7 @@ class CoreController:
     def get_member(self, member=None, user=None, guild=None):
         """Retrieves a Dwarf ˋMemberˋ object from the database.
         Either ˋmemberˋ or both ˋuserˋ and ˋguildˋ must be given as arguments.
-        
+
         Parameters
         ----------
         member : Optional
@@ -332,7 +332,7 @@ class CoreController:
         guild : Optional
             Can be a Discord ˋGuildˋ object or a guild ID.
         """
-        
+
         if isinstance(member, discord.Member):
             user_id = member.id
             guild_id = member.guild.id
@@ -348,13 +348,13 @@ class CoreController:
                 guild_id = guild.id
             else:
                 guild_id = guild
-        
+
         return Member.objects.get(user=user_id, guild=guild_id)
 
     def new_member(self, member=None, user=None, guild=None):
         """Creates a new Dwarf ˋMemberˋ object and connects it to the database.
         Either ˋmemberˋ or both ˋuserˋ and ˋguildˋ must be given as arguments.
-        
+
         Parameters
         ----------
         member : Optional
@@ -364,7 +364,7 @@ class CoreController:
         guild : Optional
             Can be a Discord ˋGuildˋ object or a guild ID.
         """
-        
+
         if isinstance(member, discord.Member):
             user_id = member.id
             guild_id = member.guild.id
@@ -380,12 +380,12 @@ class CoreController:
                 guild_id = guild.id
             else:
                 guild_id = guild
-        
+
         return Member(user=user_id, guild=guild_id)
 
     def get_message(self, message):
         """Retrieves a Message from the database.
-        
+
         Parameters
         ----------
         message
@@ -398,13 +398,13 @@ class CoreController:
 
     def new_message(self, message):
         """Creates a new Dwarf ˋMessageˋ object and connects it to the database.
-        
+
         Parameters
         ----------
         message
             Has to be a Discord ˋMessageˋ object.
         """
-        
+
         if isinstance(message, discord.Message):
             return Message(id=message.id, author=message.author.id, channel=message.channel,
                            content=message.content, clean_content=message.clean_content,)

@@ -4,7 +4,7 @@ from discord.ext import commands
 from dwarf.bot import Cog
 from dwarf import formatting as f
 from dwarf.controller import BaseController, ExtensionAlreadyInstalled, ExtensionNotFound, ExtensionNotInIndex
-from .controller import CoreController, PrefixAlreadyExists, PrefixNotFound
+from .controllers import CoreController, PrefixAlreadyExists, PrefixNotFound
 from . import strings
 
 from collections import defaultdict
