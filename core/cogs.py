@@ -590,20 +590,19 @@ class Core(Cog):
         await ctx.send("I'll be right back!")
         await self.core.restart(restarted_from=ctx.message.channel)
 
-    async def get_command(self, command):
-        command = command.split()
-        try:
-            comm_obj = self.bot.commands[command[0]]
-            if len(command) > 1:
-                command.pop(0)
-                for cmd in command:
-                    comm_obj = comm_obj.commands[cmd]
-        except KeyError:
-            return KeyError
-        for check in comm_obj.checks:
-            if check.__name__ == "is_owner_check":
-                return False
-        return comm_obj
+    async def leave_confirmation(self, guild, ctx):
+        if not ctx.message.channel.is_private:
+            current_guild = ctx.message.guild
+        else:
+            current_guild = None
+        await ctx.send("Are you sure you want me to leave **{}**? (yes/no)".format(guild.name))
+        answer = await self.bot.wait_for_answer(ctx, timeout=30)
+        if answer is None or answer is False:
+            await ctx.send("I'll stay then.")
+        else:
+            await self.bot.leave_guild(guild)
+            if guild != current_guild:
+                await ctx.send("Done.")
 
     @commands.command(no_pm=True)
     @commands.is_owner()
@@ -648,8 +647,10 @@ class Core(Cog):
                     break
             else:
                 break
+        await ctx.send("Reinvoke the {}{} command if you need to leave any servers in the "
+                       "future.".format(ctx.prefix, ctx.invoked_with))
 
-    @commands.command()
+    @commands.command(enabled=False)
     async def contact(self, ctx, *, message: str):
         """Sends message to the owner of the bot."""
         # [p]contact <message>
@@ -689,20 +690,6 @@ class Core(Cog):
                        "<{}>".format(self.core.get_description(),
                                      self.core.get_repository(),
                                      self.core.get_official_invite()))
-
-    async def leave_confirmation(self, guild, ctx):
-        if not ctx.message.channel.is_private:
-            current_guild = ctx.message.guild
-        else:
-            current_guild = None
-        await ctx.send("Are you sure you want me to leave **{}**? (yes/no)".format(guild.name))
-        answer = await self.bot.wait_for_answer(ctx, timeout=30)
-        if answer is None or answer is False:
-            await ctx.send("I'll stay then.")
-        else:
-            await self.bot.leave_guild(guild)
-            if guild != current_guild:
-                await ctx.send("Done.")
 
     @commands.command()
     async def version(self, ctx):

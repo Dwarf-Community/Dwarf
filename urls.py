@@ -1,7 +1,8 @@
 from django.conf.urls import url, include
-from dwarf import views
-from dwarf.controller import BaseController
 from rest_framework.routers import DefaultRouter
+
+from . import views
+from .controller import BaseController
 
 
 base = BaseController()

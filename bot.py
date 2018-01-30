@@ -5,7 +5,7 @@ import aiohttp
 from .controller import BaseController
 from .cache import Cache
 from .core.controllers import CoreController
-from .models import Guild, Channel, User
+from .models import User, Guild, Channel
 from . import strings, utils, __version__
 
 import os
@@ -47,13 +47,12 @@ class Bot(commands.Bot):
                          command_has_no_subcommands=strings.command_has_no_subcommands)
         self.base.cache.loop = self.loop
         self.core.cache.loop = self.loop
-        self._cache = Cache(bot=self)
-        self.add_check(self.user_allowed)
-        self._main_task = None
-        self._core_tasks = []
-        self.create_task(self.wait_for_restart, protect=True)
-        self.create_task(self.wait_for_shutdown, protect=True)
+
+        self.create_task(self.wait_for_restart)
+        self.create_task(self.wait_for_shutdown)
+        self.tasks = {}
         self.extra_tasks = {}
+
         user_agent = 'Dwarf (https://github.com/Dwarf-Community/Dwarf {0}) Python/{1} aiohttp/{2} discord.py/{3}'
         self.http.user_agent = user_agent.format(__version__, sys.version.split(maxsplit=1)[0],
                                                  aiohttp.__version__, discord.__version__)
@@ -89,7 +88,7 @@ class Bot(commands.Bot):
 
     async def on_command_completion(self, ctx):
         author = ctx.message.author
-        user = User.objects.get_or_create(id=author.id)[0]
+        user = self.core.get_user(author)
         user_already_registered = User.objects.filter(id=author.id).exists()
         user.command_count += 1
         user.save()
@@ -137,22 +136,19 @@ class Bot(commands.Bot):
 
     def stop(self):
         def silence_gathered(future):
-            try:
-                future.result()
-            finally:
-                self.loop.stop()
+            future.result()
 
         # cancel lingering tasks
-        pending = asyncio.Task.all_tasks(loop=self.loop)
-        if pending:
-            for core_task in self._core_tasks:
-                pending.discard(core_task)
-            pending.discard(self._main_task)
-            gathered = asyncio.gather(*pending, loop=self.loop)
+        if self.extra_tasks:
+            tasks = set()
+            for task in self.tasks:
+                tasks.add(task)
+            for _, extra_tasks in self.extra_tasks:
+                for task in extra_tasks:
+                    tasks.add(task)
+            gathered = asyncio.gather(*tasks, loop=self.loop)
             gathered.add_done_callback(silence_gathered)
             gathered.cancel()
-        else:
-            self.loop.stop()
 
         self.dispatch('stopped')
 
@@ -163,26 +159,23 @@ class Bot(commands.Bot):
         for name, member in members:
             # register tasks the cog has
             if name.startswith('do_'):
-                self.add_task(member, name=name, resume_check=self.core.restarting_enabled)
+                self.add_task(member, resume_check=self.core.restarting_enabled)
 
-    def _resolve_groups(self, cog_or_command=None):
-        if cog_or_command is None:
-            for extension in ['core'] + self.base.get_extensions():
-                # find the extension's cog
-                for cog in [_cog for _cog in self.cogs.values() if _cog.extension == extension]:
-                    self._resolve_groups(cog)
+        self._resolve_groups(cog)
 
-        elif isinstance(cog_or_command, Cog):
-            for name, member in inspect.getmembers(cog_or_command):
-                if isinstance(member, commands.Command):
-                    self._resolve_groups(member)
+    def _resolve_groups(self, cog_or_command):
+        if isinstance(cog_or_command, Cog):
+            for _, member in inspect.getmembers(cog_or_command, lambda _member: isinstance(_member, commands.Command)):
+                self._resolve_groups(member)
 
         elif isinstance(cog_or_command, commands.Command):
             # if command is in a group
             if '_' in cog_or_command.name:
                 # resolve groups recursively
                 entire_group, command_name = cog_or_command.name.rsplit('_', 1)
-                group_name = entire_group.rsplit('_', 1)[0]
+                group_name = entire_group.rsplit('_', 1)[-1]
+                if group_name == '':  # e.g. if command name is like '_eval' for some reason
+                    return
                 if group_name in self.all_commands:
                     if not isinstance(self.all_commands[group_name], commands.Group):
                         raise CommandConflict("cannot group command {0} under {1} because {1} is already a "
@@ -203,9 +196,9 @@ class Bot(commands.Bot):
                 group_command.add_command(cog_or_command)
 
         else:
-            raise TypeError("cog_or_command must be either a cog, a command or None")
+            raise TypeError("cog_or_command must be either a cog or a command")
 
-    def create_task(self, coro, resume_check=None, protect=False, *args, **kwargs):
+    def create_task(self, coro, resume_check=None, *args, **kwargs):
         def actual_resume_check():
             return resume_check() and not self.is_closed()
 
@@ -214,11 +207,8 @@ class Bot(commands.Bot):
                 await asyncio.wait((self.wait_for('resumed'), self.wait_for('ready')),
                                    loop=self.loop, return_when=asyncio.FIRST_COMPLETED)
 
-        task = self.loop.create_task(utils.restart_after_disconnect(pause, self.wait_until_ready,
-                                                                    actual_resume_check)(coro)(*args, **kwargs))
-        if protect:
-            self._core_tasks.append(task)
-        return task
+        return self.loop.create_task(utils.autorestart(pause, self.wait_until_ready,
+                                                       actual_resume_check)(coro)(*args, **kwargs))
 
     def add_task(self, coro, name=None, unique=True, resume_check=None):
         """The non decorator alternative to :meth:`.task`.
@@ -245,10 +235,10 @@ class Bot(commands.Bot):
         .. code-block:: python3
 
             async def do_stuff: pass
-            async def my_message(message): pass
+            async def my_other_task(ctx): pass
 
             bot.add_task(do_stuff)
-            bot.add_task(my_other_task, name='do_something_else')
+            bot.add_task(my_other_task, name='do_something_else', ctx=ctx)
 
         """
         if not asyncio.iscoroutinefunction(coro):
@@ -270,12 +260,12 @@ class Bot(commands.Bot):
     async def wait_for_restart(self):
         await self.core.cache.subscribe('restart')
 
-    async def on_shutdown_message(self, message):
+    async def on_shutdown_message(self, _):
         self.core.disable_restarting()
         print("Shutting down...")
         await self.logout()
 
-    async def on_restart_message(self, message):
+    async def on_restart_message(self, _):
         print("Restarting...")
         await self.logout()
 
@@ -332,69 +322,35 @@ class Bot(commands.Bot):
         if failed:
             print("\nFailed to load: " + ", ".join(failed))
 
-        self._resolve_groups()
-
         return core_cog
-
-    def user_allowed(self, ctx):
-        if self.core.get_owner_id() == ctx.message.author.id:
-            return True
-
-        # TODO blacklisting users
-
-        return True
 
     def task(self, unique=True, resume_check=None):
         """A decorator that registers a task to execute in the background.
 
-        The task must accept only one argument (usually called ``state``),
-        if not, ``TypeError``\ is raised. The ``state`` passed is a ``dict``.
         If a task is running when the Client disconnects from Discord
         because it logged itself out, it will cancel the execution of the
         task. If the Client loses the connection to Discord because
         of network issues or similar, it will cancel the execution of the task,
-        wait for itself to reconnect, then restart the task with the
-        ``state`` it had when it was cancelled.
+        wait for itself to reconnect, then restart the task.
 
-        Examples
-        ---------
+        Example
+        -------
 
-        Creating a task that executes once on startup: ::
+        ::
 
-            @bot.task
-            async def say_hello(state):
-                step = state.setdefault('step', 1)
-                if step == 1:
-                    print('Step 1')
-                    step = state['step'] = 2
-                if step == 2:
-                    print('Step 2')
-                    step = state['step'] = 3
-                if step == 3:
-                    print('Step 3')
-                return
-
-        Creating a task inside a cog that will execute continuously: ::
-
-            async def do_say_hello_every_minute(self):
-                seconds_passed = state.setdefault('seconds_passed', 0)
+            @bot.task()
+            async def do_say_hello_every_minute():
                 while True:
-                    if seconds_passed == 60:
-                        print("Hello World!")
-                        seconds_passed = state['seconds_passed'] = 0
-                    yield from asyncio.sleep(1)
-                    seconds_passed = state['seconds_passed'] += 1
-
-        Creating a task from a coroutine function dynamically: ::
-
-            bot.task(my_coroutine_function)
+                    print("Hello World!")
+                    await asyncio.sleep(60)
 
         Parameters
-        ------------
+        ----------
         unique : Optional[bool]
-            If this is ``True``, tasks with the same name that are already in
-            :attr:`tasks` will not be overwritten, and the original task will
-            not be cancelled. Defaults to ``True``.
+            If this is ``True``, tasks with the same name that are
+            already sttributes of ``self`` will not be overwritten,
+            and the original task will not be cancelled.
+            Defaults to ``True``.
         resume_check : Optional[predicate]
             A predicate used to determine whether a task should be
             cancelled on logout or restarted instead when the bot is
@@ -422,7 +378,8 @@ class Bot(commands.Bot):
     def run_tasks(self):
         members = inspect.getmembers(self)
         for name, member in [_member for _member in members if _member[0].startswith('do')]:
-            self.create_task(member)
+            task = self.create_task(member)
+            self.tasks[name] = task
 
     async def wait_for_response(self, ctx, message_check=None, timeout=60):
         def response_check(message):
@@ -436,13 +393,16 @@ class Bot(commands.Bot):
         return response
 
     async def wait_for_answer(self, ctx, timeout=60):
-        def answer_check(message):
-            return utils.is_boolean_answer(message)
+        def is_answer(message):
+            return message.content.lower().startswith('y') or message.lower().startswith('n')
 
-        answer = await self.wait_for_response(ctx, message_check=answer_check, timeout=timeout)
+        answer = await self.wait_for_response(ctx, message_check=is_answer, timeout=timeout)
         if answer is None:
-            return
-        return utils.answer_to_boolean(answer)
+            return None
+        if answer.lower().startswith('y'):
+            return True
+        if answer.lower().startswith('n'):
+            return False
 
     async def wait_for_choice(self, ctx, choices: list, timeout=60):
         choice_format = "**{}**: {}"
@@ -490,8 +450,6 @@ class Bot(commands.Bot):
         print(strings.owner_recognized.format(data.owner.name))
 
     async def run(self):
-        self._main_task = asyncio.Task.current_task(loop=self.loop)
-
         self._load_cogs()
 
         if self.core.get_prefixes():

@@ -1,6 +1,5 @@
+from django.contrib.auth.base_user import AbstractBaseUser
 from django.db import models
-from django.db.models import signals
-from django.contrib.auth.models import AbstractBaseUser
 
 from .controller import BaseController
 
@@ -32,7 +31,7 @@ class Guild(models.Model):
     register_time = models.TimeField('date registered', auto_now=True)
     invite_link = models.CharField(max_length=64, unique=True, db_index=True)
     url = models.CharField(max_length=256, unique=True)
-    is_removed = models.BooleanField(default=False)
+    is_deleted = models.BooleanField(default=False)
 
 
 class Channel(models.Model):
@@ -63,33 +62,8 @@ class String(models.Model):
     en_us = models.CharField(max_length=2048)
 
 
-class Log(models.Model):
-    time = models.TimeField('timestamp')
-    level = models.CharField(max_length=64)
-    type = models.CharField(max_length=64)
-    message = models.CharField(max_length=2048)
-
-
 # Importing models introduced by extensions.
 # Kinda hacky but there seems to be no clean way to do this.
-def add_extension_prefix(sender, **kwargs):
-    """Prefix the db_table name of the model with
-    the name of the extension the model belongs to
-
-    :type sender: django.db.models.Model
-    """
-    try:
-        extension = sender._meta.extension
-    except AttributeError:
-        return
-    if not sender._meta.db_table.startswith(sender._meta.extension + '_'):
-        sender._meta.db_table = extension + '_' + sender._meta.db_table
-
-
-signals.pre_init.connect(add_extension_prefix)
-signals.class_prepared.connect(add_extension_prefix)
-
-
 extensions = base.get_extensions()
 for extension in extensions:
     try:
