@@ -3,8 +3,10 @@ from discord.ext import commands
 
 from dwarf.bot import Cog
 from dwarf import formatting as f
-from dwarf.controller import BaseController, ExtensionAlreadyInstalled, ExtensionNotFound, ExtensionNotInIndex
-from .controllers import CoreController, PrefixAlreadyExists, PrefixNotFound
+from dwarf.controllers import BaseController
+from .controllers import CoreController
+from dwarf.errors import (ExtensionAlreadyInstalled, ExtensionNotFound, ExtensionNotInIndex,
+                          PrefixAlreadyExists, PrefixNotFound)
 from . import strings
 
 from collections import defaultdict

@@ -193,9 +193,9 @@ class CoreController:
         """
 
         if isinstance(user, discord.User) or isinstance(user, discord.Member):
-            return User.objects.get_or_create(id=user.id)
+            return User(id=user.id)
         else:
-            return User.objects.get_or_create(id=user)
+            return User(id=user)
 
     @staticmethod
     def user_is_registered(user):
@@ -204,10 +204,10 @@ class CoreController:
         Parameters
         ----------
         user
-            Can be a `discord.User` object or `Member` object, or a user ID.
+            Can be a `discord.User`, `discord.Member` or Dwarf User object, or a user ID.
         """
 
-        if isinstance(user, discord.User) or isinstance(user, discord.Member):
+        if isinstance(user, (discord.User, discord.Member, User)):
             return User.objects.filter(id=user.id).exists()
         elif isinstance(user, int):
             return User.objects.filter(id=user).exists()

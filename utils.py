@@ -58,13 +58,13 @@ def autorestart(delay_start=None, pause=None, restart_check=None):
         @asyncio.coroutine
         def wrapped(*args, **kwargs):
             if delay_start is not None:
-                yield from discord.utils.maybe_coroutine(delay_start)()
+                yield from discord.utils.maybe_coroutine(delay_start)
             try:
                 if pause is not None:
-                    yield from discord.utils.maybe_coroutine(pause())
+                    yield from discord.utils.maybe_coroutine(pause)
                 return (yield from coro(*args, **kwargs))
             except asyncio.CancelledError:
-                if restart_check is not None and (yield from discord.utils.maybe_coroutine(restart_check)()):
+                if restart_check is not None and (yield from discord.utils.maybe_coroutine(restart_check)):
                     yield from wrapped(*args, **kwargs)
                 else:
                     raise

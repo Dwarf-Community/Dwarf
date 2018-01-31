@@ -1,7 +1,7 @@
 from django.contrib.auth.base_user import AbstractBaseUser
 from django.db import models
 
-from .controller import BaseController
+from .controllers import BaseController
 
 import importlib
 
@@ -53,13 +53,13 @@ class Message(models.Model):
     id = models.BigIntegerField(primary_key=True)
     user = models.ForeignKey(User, db_index=True, on_delete=models.CASCADE)
     channel = models.ForeignKey(Channel, on_delete=models.CASCADE)
-    content = models.TextField(max_length=2048)
-    clean_content = models.TextField(max_length=2048)
+    content = models.TextField(max_length=2000)
+    clean_content = models.TextField(max_length=2000)
 
 
 class String(models.Model):
     name = models.CharField(primary_key=True, max_length=64)
-    en_us = models.CharField(max_length=2048)
+    default = models.CharField(max_length=2000)
 
 
 # Importing models introduced by extensions.

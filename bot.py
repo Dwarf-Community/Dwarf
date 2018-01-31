@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 import aiohttp
 
-from .controller import BaseController
+from .controllers import BaseController
 from .cache import Cache
 from .core.controllers import CoreController
 from .models import User, Guild, Channel
@@ -19,21 +19,6 @@ import asyncio
 
 class CommandConflict(Exception):
     pass
-
-
-class Cog:
-    def __init__(self, bot, extension, log=True, cache=False, session=False):
-        self.bot = bot
-        self.extension = extension
-        if log:
-            log_name = 'dwarf.' + extension + '.cogs'
-            if self.__module__ != 'cogs':
-                log_name += '.' + self.__module__
-            self.log = logging.getLogger('dwarf.' + extension + '.cogs')
-        if cache:
-            self.cache = Cache(extension, bot=bot)
-        if session:
-            self.session = aiohttp.ClientSession(loop=bot.loop)
 
 
 class Bot(commands.Bot):
@@ -89,7 +74,7 @@ class Bot(commands.Bot):
     async def on_command_completion(self, ctx):
         author = ctx.message.author
         user = self.core.get_user(author)
-        user_already_registered = User.objects.filter(id=author.id).exists()
+        user_already_registered = self.core.user_is_registered(user)
         user.command_count += 1
         user.save()
         if not user_already_registered:
@@ -304,6 +289,9 @@ class Bot(commands.Bot):
         return cog_module
 
     def _load_cogs(self):
+        if self.all_commands:
+            self.recursively_remove_all_commands()
+
         self.load_extension('core')
 
         core_cog = self.get_cog('Core')
@@ -467,6 +455,41 @@ class Bot(commands.Bot):
         await self.start(self.base.get_token())
 
         await self.wait_for('stopped')
+
+
+class Cog:
+    def __init__(self, bot, extension, log=True, cache=False, session=False):
+        """The base class for cogs, classes that include
+        commands, event listeners and background tasks
+
+        Parameters
+        ----------
+        bot : Bot
+            The bot to add the cog to.
+        extension : str
+            The name of the extension the cog belongs to.
+        log : Optional[bool]
+            Whether to assign a ``logging.Logger`` as the
+            :attr:`log` attribute. Defaults to True.
+        cache : bool
+            Whether to assign a ``dwarf.Cache`` as the
+            :attr:`cache` attribute. Defaults to False.
+        session : bool
+            Whether to assign an ``aiohttp.ClientSession``
+            as the :attr:`session` attribute.
+            Defaults to False.
+        """
+        self.bot = bot
+        self.extension = extension
+        if log:
+            log_name = 'dwarf.' + extension + '.cogs'
+            if self.__module__ != 'cogs':
+                log_name += '.' + self.__module__
+            self.log = logging.getLogger('dwarf.' + extension + '.cogs')
+        if cache:
+            self.cache = Cache(extension, bot=bot)
+        if session:
+            self.session = aiohttp.ClientSession(loop=bot.loop)
 
 
 def main(loop=None, bot=None):

@@ -6,7 +6,6 @@ import asyncio
 
 
 class Command(BaseCommand):
-
     def handle(self, *args, **options):
         loop = asyncio.get_event_loop()
         if settings.DEBUG:
