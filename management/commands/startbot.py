@@ -6,6 +6,10 @@ import asyncio
 
 
 class Command(BaseCommand):
+    help = (
+        "Creates a bot instance and connects to Discord."
+    )
+
     def handle(self, *args, **options):
         loop = asyncio.get_event_loop()
         if settings.DEBUG:

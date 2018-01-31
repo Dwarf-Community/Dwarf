@@ -17,7 +17,7 @@ import logging
 import asyncio
 
 
-class CommandConflict(Exception):
+class CommandConflict(discord.ClientException):
     pass
 
 
@@ -37,6 +37,7 @@ class Bot(commands.Bot):
         self.create_task(self.wait_for_shutdown)
         self.tasks = {}
         self.extra_tasks = {}
+        self._stopped = asyncio.Event(loop=self.loop)
 
         user_agent = 'Dwarf (https://github.com/Dwarf-Community/Dwarf {0}) Python/{1} aiohttp/{2} discord.py/{3}'
         self.http.user_agent = user_agent.format(__version__, sys.version.split(maxsplit=1)[0],
@@ -135,7 +136,22 @@ class Bot(commands.Bot):
             gathered.add_done_callback(silence_gathered)
             gathered.cancel()
 
-        self.dispatch('stopped')
+        self._stopped.set()
+
+    def clear(self):
+        super().clear()
+
+        self.recursively_remove_all_commands()
+        self.extra_events.clear()
+        self.tasks.clear()
+        self.extra_tasks.clear()
+        self.cogs.clear()
+        self.extensions.clear()
+        self._stopped.clear()
+        self._checks.clear()
+        self._check_once.clear()
+        self._before_invoke = None
+        self._after_invoke = None
 
     def add_cog(self, cog):
         super().add_cog(cog)
@@ -159,8 +175,13 @@ class Bot(commands.Bot):
                 # resolve groups recursively
                 entire_group, command_name = cog_or_command.name.rsplit('_', 1)
                 group_name = entire_group.rsplit('_', 1)[-1]
-                if group_name == '':  # e.g. if command name is like '_eval' for some reason
-                    return
+                # just ignore this command if its name is like '_eval' for some reason
+                if group_name == '':
+                    if entire_group == '' and '__' not in cog_or_command.name:
+                        return
+                    else:  # raise if command name is like 'group__command'
+                        raise ValueError("command {} has two or more consecutive underscores "
+                                         "in its name".format(cog_or_command.name))
                 if group_name in self.all_commands:
                     if not isinstance(self.all_commands[group_name], commands.Group):
                         raise CommandConflict("cannot group command {0} under {1} because {1} is already a "
@@ -289,9 +310,6 @@ class Bot(commands.Bot):
         return cog_module
 
     def _load_cogs(self):
-        if self.all_commands:
-            self.recursively_remove_all_commands()
-
         self.load_extension('core')
 
         core_cog = self.get_cog('Core')
@@ -454,7 +472,7 @@ class Bot(commands.Bot):
 
         await self.start(self.base.get_token())
 
-        await self.wait_for('stopped')
+        await self._stopped.wait()
 
 
 class Cog:

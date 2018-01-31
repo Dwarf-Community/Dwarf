@@ -17,6 +17,10 @@ import importlib
 import pip
 
 
+class InstallationError(Exception):
+    pass
+
+
 class ExtensionAlreadyInstalled(Exception):
     pass
 
@@ -231,20 +235,23 @@ class BaseController:
             _dependencies[extension] = dependencies
             return self.set_dependencies(_dependencies)
 
-    @staticmethod
-    def download_extension(extension, repository=None):
+    def download_extension(self, extension, repository=None):
         if repository is None:
             try:
-                repository = dwarf.extensions.index[extension]['repository']
+                repository = dwarf.extensions.INDEX[extension]['repository']
             except KeyError:
                 raise ExtensionNotInIndex(extension)
 
-        subprocess.run(['git', 'clone', repository, 'dwarf/' + extension])
+        exit_code = subprocess.run(['git', 'clone', repository, 'dwarf/' + extension]).returncode
+        if exit_code > 0:
+            self.delete_extension(extension)
+            raise InstallationError('could not clone repository "{0}" (git exited with '
+                                    'exit code: {1})'.format(repository, exit_code))
 
     @staticmethod
     def download_extension_update(extension):
         try:
-            repository = dwarf.extensions.index[extension]['repository']
+            repository = dwarf.extensions.INDEX[extension]['repository']
         except KeyError:
             raise ExtensionNotInIndex(extension)
 
