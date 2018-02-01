@@ -58,7 +58,7 @@ class Message(models.Model):
 
 class String(models.Model):
     name = models.CharField(primary_key=True, max_length=64)
-    default = models.CharField(max_length=2000)
+    en_us = models.CharField(max_length=2000)
 
 
 # Importing models introduced by extensions.

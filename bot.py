@@ -122,10 +122,13 @@ class Bot(commands.Bot):
 
     def stop(self):
         def silence_gathered(future):
-            future.result()
+            try:
+                future.result()
+            except Exception as ex:
+                traceback.print_exc()
 
         # cancel lingering tasks
-        if self.extra_tasks:
+        if self.tasks or self.extra_tasks:
             tasks = set()
             for task in self.tasks:
                 tasks.add(task)
@@ -488,10 +491,10 @@ class Cog:
     assign_log : Optional[bool]
         Whether to assign a ``logging.Logger`` as the
         :attr:`log` attribute. Defaults to True.
-    assign_cache : bool
+    assign_cache : Optional[bool]
         Whether to assign a ``dwarf.Cache`` as the
         :attr:`cache` attribute. Defaults to False.
-    assign_session : bool
+    assign_session : Optional[bool]
         Whether to assign an ``aiohttp.ClientSession``
         as the :attr:`session` attribute.
         Defaults to False.
