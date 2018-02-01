@@ -403,7 +403,7 @@ class Bot(commands.Bot):
 
     async def wait_for_answer(self, ctx, timeout=60):
         def is_answer(message):
-            return message.content.lower().startswith('y') or message.lower().startswith('n')
+            return message.content.lower().startswith('y') or message.content.lower().startswith('n')
 
         answer = await self.wait_for_response(ctx, message_check=is_answer, timeout=timeout)
         if answer is None:
