@@ -398,8 +398,8 @@ class Bot(commands.Bot):
         try:
             response = await self.wait_for('message', check=response_check, timeout=timeout)
         except asyncio.TimeoutError:
-            return
-        return response
+            return None
+        return response.content
 
     async def wait_for_answer(self, ctx, timeout=60):
         def is_answer(message):
@@ -415,21 +415,22 @@ class Bot(commands.Bot):
 
     async def wait_for_choice(self, ctx, choices: list, timeout=60):
         choice_format = "**{}**: {}"
-        choice_messages = []
+        _choices = []
 
         def choice_check(message):
-            return message.content[0] - 1 in range(len(choices))
+            try:
+                return int(message.content.split(maxsplit=1)[0]) <= len(choices)
+            except TypeError:
+                return False
 
-        for i, choice in enumerate(choices, 1):
-            choice_messages.append(choice_format.format(i, choice))
+        for i, _choice in enumerate(choices, 1):
+            _choices.append(choice_format.format(i, _choice))
 
-        choices_message = "\n".join(choice_messages)
-        final_message = "{}\n\n{}".format(ctx.message, choices_message)
-        await ctx.send(final_message)
+        await ctx.send("{}\n\n{}".format("Choose:", "\n".join(_choices)))
         choice = await self.wait_for_response(ctx, message_check=choice_check, timeout=timeout)
         if choice is None:
-            return
-        return int(choice)
+            return None
+        return int(choice.split(maxsplit=1)[0])
 
     async def send_command_help(self, ctx):
         if ctx.invoked_subcommand:
