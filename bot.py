@@ -449,8 +449,8 @@ class Bot(commands.Bot):
             for page in pages:
                 await ctx.send(page)
 
-    async def on_command_error(self, ctx, error, ignore_local_checks=False):
-        if not ignore_local_checks:
+    async def on_command_error(self, ctx, error, ignore_local_handlers=False):
+        if not ignore_local_handlers:
             if hasattr(ctx.command, 'on_error'):
                 return
 
