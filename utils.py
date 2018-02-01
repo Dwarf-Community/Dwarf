@@ -1,12 +1,12 @@
 """A collection of various helper functions and utility functions."""
 
-import discord
-from discord.errors import HTTPException, GatewayNotFound, ConnectionClosed
-import aiohttp
-import websockets
-
 import asyncio
 import functools
+
+import aiohttp
+import websockets
+from discord.utils import maybe_coroutine
+from discord.errors import HTTPException, GatewayNotFound, ConnectionClosed
 
 
 def estimate_reading_time(text):
@@ -58,13 +58,13 @@ def autorestart(delay_start=None, pause=None, restart_check=None):
         @asyncio.coroutine
         def wrapped(*args, **kwargs):
             if delay_start is not None:
-                yield from discord.utils.maybe_coroutine(delay_start)
+                yield from maybe_coroutine(delay_start)
             try:
                 if pause is not None:
-                    yield from discord.utils.maybe_coroutine(pause)
+                    yield from maybe_coroutine(pause)
                 return (yield from coro(*args, **kwargs))
             except asyncio.CancelledError:
-                if restart_check is not None and (yield from discord.utils.maybe_coroutine(restart_check)):
+                if restart_check is not None and (yield from maybe_coroutine(restart_check)):
                     yield from wrapped(*args, **kwargs)
                 else:
                     raise
@@ -76,12 +76,13 @@ def autorestart(delay_start=None, pause=None, restart_check=None):
                     aiohttp.ClientError,
                     asyncio.TimeoutError,
                     websockets.InvalidHandshake,
-                    websockets.WebSocketProtocolError) as e:
-                if any((isinstance(e, ConnectionClosed) and e.code == 1000,  # clean disconnect
-                        not isinstance(e, ConnectionClosed))):
+                    websockets.WebSocketProtocolError) as ex:
+                if any((isinstance(ex, ConnectionClosed) and ex.code == 1000,  # clean disconnect
+                        not isinstance(ex, ConnectionClosed))):
                     yield from wrapped(*args, **kwargs)
                 else:
                     raise
 
         return wrapped
+
     return wrapper

@@ -59,7 +59,7 @@ class CoreController:
     def set_restarted_from(self, channel):
         """Sets the channel the bot was restarted from."""
 
-        if isinstance(channel, discord.TextChannel) or isinstance(channel, discord.DMChannel):
+        if isinstance(channel, (discord.TextChannel, discord.DMChannel)):
             channel = channel.id
         return self.cache.set('restarted_from', channel)
 
@@ -192,10 +192,9 @@ class CoreController:
             Can be a `discord.User` object or `Member` object, or a user ID.
         """
 
-        if isinstance(user, discord.User) or isinstance(user, discord.Member):
+        if isinstance(user, (discord.User, discord.Member)):
             return User(id=user.id)
-        else:
-            return User(id=user)
+        return User(id=user)
 
     @staticmethod
     def user_is_registered(user):
@@ -226,8 +225,7 @@ class CoreController:
 
         if isinstance(guild, discord.Guild):
             return Guild.objects.get(id=guild.id)
-        else:
-            return Guild.objects.get(id=guild)
+        return Guild.objects.get(id=guild)
 
     @staticmethod
     def new_guild(guild):
@@ -241,8 +239,7 @@ class CoreController:
 
         if isinstance(guild, discord.Guild):
             return Guild(id=guild.id)
-        else:
-            return Guild(id=guild)
+        return Guild(id=guild)
 
     @staticmethod
     def get_channel(channel):
@@ -256,8 +253,7 @@ class CoreController:
 
         if isinstance(channel, discord.TextChannel):
             return Channel.objects.get(id=channel.id)
-        else:
-            return Channel.objects.get(id=channel)
+        return Channel.objects.get(id=channel)
 
     @staticmethod
     def new_channel(channel, guild=None):
@@ -274,11 +270,10 @@ class CoreController:
 
         if isinstance(channel, discord.TextChannel):
             return Channel(id=channel.id, guild=channel.guild.id)
-        else:
-            if guild is None:
-                raise ValueError("Either a Channel object or both channel ID "
-                                 "and guild ID must be given as argument(s).")
-            return Channel(id=channel, guild=guild)
+        if guild is None:
+            raise ValueError("Either a Channel object or both channel ID "
+                             "and guild ID must be given as argument(s).")
+        return Channel(id=channel, guild=guild)
 
     @staticmethod
     def get_role(role):
@@ -292,8 +287,7 @@ class CoreController:
 
         if isinstance(role, discord.Role):
             return Role.objects.get(id=role.id)
-        else:
-            return Role.objects.get(id=role)
+        return Role.objects.get(id=role)
 
     @staticmethod
     def new_role(role, guild=None):
@@ -310,11 +304,10 @@ class CoreController:
 
         if isinstance(role, discord.Role):
             return Role(id=role.id)
-        else:
-            if guild is None:
-                raise ValueError("Either a Role object or both role ID "
-                                 "and guild ID must be given as argument(s)")
-            return Role(id=role)
+        if guild is None:
+            raise ValueError("Either a Role object or both role ID "
+                             "and guild ID must be given as argument(s)")
+        return Role(id=role)
 
     @staticmethod
     def get_member(member=None, user=None, guild=None):
@@ -409,5 +402,4 @@ class CoreController:
         if isinstance(message, discord.Message):
             return Message(id=message.id, author=message.author.id, channel=message.channel,
                            content=message.content, clean_content=message.clean_content)
-        else:
-            raise ValueError("A Message object must be given as an argument")
+        raise ValueError("A Message object must be given as an argument")

@@ -1,20 +1,20 @@
-from django.core import management
-
-try:
-    import dwarf.extensions
-except ImportError:
-    raise ImportError("the Dwarf Extension Index could not be found; install it using:\n"
-                      "git clone https://github.com/Dwarf-Community/Dwarf-Extensions dwarf/extensions")
-
-from .cache import Cache
-from . import __version__
-
 import subprocess
 import shutil
 import os
 import stat
 import importlib
 import pip
+
+from django.core import management
+
+from . import __version__
+from .cache import Cache
+
+try:
+    import dwarf.extensions
+except ImportError:
+    raise ImportError("the Dwarf Extension Index could not be found; install it using:\n"
+                      "git clone https://github.com/Dwarf-Community/Dwarf-Extensions dwarf/extensions")
 
 
 class InstallationError(Exception):
@@ -139,6 +139,7 @@ class BaseController:
         self.sync_database()
         self.register_extension(extension)
         self.set_dependencies(dependencies, extension)
+        return None
 
     def update_extension(self, extension):
         """Updates an extension via the Dwarf Extension Index.
@@ -186,6 +187,7 @@ class BaseController:
         self.sync_database()
         self.register_extension(extension)
         self.set_dependencies(dependencies, extension)
+        return None
 
     def uninstall_extension(self, extension):
         """Uninstalls an installed extension.
@@ -217,23 +219,24 @@ class BaseController:
         self.delete_extension(extension)
         self.sync_database()
         self.unregister_extension(extension)
+        return None
 
     def get_dependencies(self, extension=None):
         if extension is None:
             return self.cache.get('dependencies', default={})
-        else:
-            try:
-                return self.get_dependencies()[extension]
-            except KeyError:
-                raise ExtensionNotFound(extension)
+
+        try:
+            return self.get_dependencies()[extension]
+        except KeyError:
+            raise ExtensionNotFound(extension)
 
     def set_dependencies(self, dependencies, extension=None):
         if extension is None:
             return self.cache.set('dependencies', dependencies)
-        else:
-            _dependencies = self.get_dependencies()
-            _dependencies[extension] = dependencies
-            return self.set_dependencies(_dependencies)
+
+        _dependencies = self.get_dependencies()
+        _dependencies[extension] = dependencies
+        return self.set_dependencies(_dependencies)
 
     def download_extension(self, extension, repository=None):
         if repository is None:

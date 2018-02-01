@@ -1,8 +1,6 @@
 """Externalized strings for better structure and easier localization"""
 
-
-setup_greeting = """
-Dwarf - First run configuration
+setup_greeting = """Dwarf - First run configuration
 
 Insert your bot's token, or enter 'cancel' to cancel the setup:"""
 
@@ -20,9 +18,9 @@ Type yes to confirm or no to change it"""
 no_prefix_set = "No prefix set. Defaulting to !"
 
 setup_finished = """
-The configuration is done. Leave this window always open to keep your bot online.
-All commands will have to be issued through Discord's chat,
-*this window will now be read only*.
+The configuration is done. Do not exit this session to keep your bot online.
+All commands will have to be issued via Discord,
+this session will now be read only.
 Press enter to continue"""
 
 logging_into_discord = "Logging into Discord..."

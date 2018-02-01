@@ -1,18 +1,18 @@
+import asyncio
+import time
+import traceback
+from collections import defaultdict
+
 import discord
 from discord.ext import commands
 
-from dwarf.bot import Cog
 from dwarf import formatting as f
+from dwarf.bot import Cog
 from dwarf.controllers import BaseController
-from .controllers import CoreController
 from dwarf.errors import (ExtensionAlreadyInstalled, ExtensionNotFound, ExtensionNotInIndex,
                           PrefixAlreadyExists, PrefixNotFound)
 from . import strings
-
-from collections import defaultdict
-import asyncio
-import traceback
-import time
+from .controllers import CoreController
 
 
 class Core(Cog):
@@ -43,8 +43,8 @@ class Core(Cog):
 
         try:
             result = eval(code, global_vars, locals())
-        except Exception as e:
-            await ctx.send(f.block(type(e).__name__ + ': ' + str(e), 'py'))
+        except Exception as ex:
+            await ctx.send(f.block(type(ex).__name__ + ': ' + str(ex), 'py'))
             return
 
         if asyncio.iscoroutine(result):
@@ -243,7 +243,7 @@ class Core(Cog):
                                        + _extension + "**' now? (yes/no)")
                         _answer = await self.bot.wait_for_response(ctx)
                         if _answer is True:
-                            self.bot.invoke_command('install', ctx, ' '.join(unsatisfied['extensions']))
+                            await ctx.invoke(self.bot.get_command('install'), ' '.join(unsatisfied['extensions']))
                         exts = self.base.get_extensions()
                         for extension_to_check in unsatisfied['extensions']:
                             if extension_to_check in exts:
@@ -331,9 +331,9 @@ class Core(Cog):
                         else:
                             return await _uninstall(_extension)
                     else:
-                            await ctx.send("Alright, I will not install any extensions just now.")
-                            uninstall_status['failed_extensions'].append(_extension)
-                            return False
+                        await ctx.send("Alright, I will not install any extensions just now.")
+                        uninstall_status['failed_extensions'].append(_extension)
+                        return False
 
                 else:
                     await ctx.send("The '**" + _extension + "**' extension was uninstalled successfully.")
@@ -420,11 +420,11 @@ class Core(Cog):
         # [p]set status <status>
 
         statuses = {
-                    "online": discord.Status.online,
-                    "idle": discord.Status.idle,
-                    "dnd": discord.Status.dnd,
-                    "invisible": discord.Status.invisible
-                   }
+            "online": discord.Status.online,
+            "idle": discord.Status.idle,
+            "dnd": discord.Status.dnd,
+            "invisible": discord.Status.invisible
+        }
 
         guild = ctx.message.guild
 
@@ -460,7 +460,6 @@ class Core(Cog):
                 streamer = "https://www.twitch.tv/" + streamer
             game = discord.Game(type=1, url=streamer, name=stream_title)
             await self.bot.change_presence(game=game, status=current_status)
-            self.log.debug('Owner has set streaming status and url to "{}" and {}'.format(stream_title, streamer))
         elif streamer is not None:
             await self.bot.send_command_help(ctx)
             return
@@ -476,15 +475,15 @@ class Core(Cog):
         # [p]set avatar <url>
 
         try:
-            async with self.session.get(url) as r:
-                data = await r.read()
+            async with self.session.get(url) as file:
+                data = await file.read()
             await self.bot.user.edit(avatar=data)
             await ctx.send("Done.")
             self.log.debug("Changed avatar.")
-        except Exception as e:
+        except discord.HTTPException as ex:
             await ctx.send("Error, check your console or logs for "
                            "more information.")
-            self.log.exception(e)
+            self.log.exception(ex)
             traceback.print_exc()
 
     @commands.command()
@@ -539,7 +538,7 @@ class Core(Cog):
             await ctx.send("The prefix '**" + prefix + "**' was added successfully.")
         except PrefixAlreadyExists:
             await ctx.send("The prefix '**" + prefix + "**' could not be added "
-                           "as it is already a prefix.")
+                                                       "as it is already a prefix.")
 
     @commands.command()
     @commands.is_owner()
@@ -569,10 +568,10 @@ class Core(Cog):
         """Calculates the ping time."""
         # [p]ping
 
-        t1 = time.perf_counter()
+        t_1 = time.perf_counter()
         await ctx.trigger_typing()
-        t2 = time.perf_counter()
-        await ctx.send("Pong.\nTime: " + str(round((t2-t1)*1000)) + "ms")
+        t_2 = time.perf_counter()
+        await ctx.send("Pong.\nTime: {}ms".format(round((t_2-t_1)*1000)))
 
     @commands.command()
     @commands.is_owner()
@@ -594,7 +593,7 @@ class Core(Cog):
 
     async def leave_confirmation(self, guild, ctx):
         if not ctx.message.channel.is_private:
-            current_guild = ctx.message.guild
+            current_guild = ctx.guild
         else:
             current_guild = None
         await ctx.send("Are you sure you want me to leave **{}**? (yes/no)".format(guild.name))
@@ -602,7 +601,7 @@ class Core(Cog):
         if answer is None or answer is False:
             await ctx.send("I'll stay then.")
         else:
-            await self.bot.leave_guild(guild)
+            await guild.leave()
             if guild != current_guild:
                 await ctx.send("Done.")
 
@@ -612,14 +611,11 @@ class Core(Cog):
         """Makes the bot leave the current server."""
         # [p]leave
 
-        message = ctx.message
-
         await ctx.send("Are you sure you want me to leave this server? (yes/no)")
         answer = await self.bot.wait_for_answer(ctx, timeout=30)
         if answer is True:
             await ctx.send("Alright. Bye :wave:")
-            self.log.debug('Leaving "{}"'.format(message.guild.name))
-            await self.bot.leave_guild(message.guild)
+            await ctx.guild.leave()
 
         else:
             await ctx.send("Ok I'll stay here then.")
@@ -633,9 +629,9 @@ class Core(Cog):
         guilds = list(self.bot.guilds)
         guild_list = {}
         msg = ""
-        for i in range(0, len(guilds)):
-            guild_list[str(i)] = guilds[i]
-            msg += "{}: {}\n".format(str(i), guilds[i].name)
+        for i, guild in enumerate(guilds):
+            guild_list[i] = guilds[i]
+            msg += "{}: {}\n".format(i, guild.name)
         msg += "\nTo leave a server just type its number."
         for page in f.pagify(msg, ['\n']):
             await ctx.send(page)
@@ -661,7 +657,7 @@ class Core(Cog):
         if owner_id is None:
             await ctx.send("I have no owner set.")
             return
-        owner = await self.bot.get_user_info(owner_id)
+        owner = self.bot.get_user(owner_id)
         author = ctx.message.author
         if isinstance(ctx.message.channel, discord.abc.GuildChannel):
             guild = ctx.message.guild

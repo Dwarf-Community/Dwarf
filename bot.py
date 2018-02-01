@@ -1,20 +1,20 @@
-import discord
-from discord.ext import commands
-import aiohttp
-
-from .controllers import BaseController
-from .cache import Cache
-from .core.controllers import CoreController
-from .models import User, Guild, Channel
-from . import strings, utils, __version__
-
+import asyncio
+import importlib
+import inspect
+import logging
 import os
 import sys
-import inspect
 import traceback
-import importlib
-import logging
-import asyncio
+
+import aiohttp
+import discord
+from discord.ext import commands
+
+from . import strings, utils, __version__
+from .cache import Cache
+from .controllers import BaseController
+from .core.controllers import CoreController
+from .models import User, Guild, Channel
 
 
 class CommandConflict(discord.ClientException):
@@ -204,7 +204,7 @@ class Bot(commands.Bot):
         else:
             raise TypeError("cog_or_command must be either a cog or a command")
 
-    def create_task(self, coro, resume_check=None, *args, **kwargs):
+    def create_task(self, coro, *args, resume_check=None, **kwargs):
         def actual_resume_check():
             return resume_check() and not self.is_closed()
 
@@ -291,7 +291,7 @@ class Bot(commands.Bot):
         """
 
         if name in self.extensions:
-            return
+            return None
 
         cog_module = importlib.import_module('dwarf.' + name + '.cogs')
 
@@ -321,8 +321,8 @@ class Bot(commands.Bot):
         for extension in extensions:
             try:
                 self.load_extension(extension)
-            except Exception as e:
-                print("{}: {}".format(e.__class__.__name__, str(e)))
+            except Exception as ex:
+                print("{}: {}".format(ex.__class__.__name__, str(ex)))
                 failed.append(extension)
 
         if failed:
@@ -417,8 +417,8 @@ class Bot(commands.Bot):
         def choice_check(message):
             return message.content[0] - 1 in range(len(choices))
 
-        for i in range(len(choices)):
-            choice_messages.append(choice_format.format(i + 1, choices[i]))
+        for i, choice in enumerate(choices, 1):
+            choice_messages.append(choice_format.format(i, choice))
 
         choices_message = "\n".join(choice_messages)
         final_message = "{}\n\n{}".format(ctx.message, choices_message)
@@ -455,7 +455,7 @@ class Bot(commands.Bot):
             raise
         print(strings.owner_recognized.format(data.owner.name))
 
-    async def run(self):
+    async def run(self, reconnect=True):
         self._load_cogs()
 
         if self.core.get_prefixes():
@@ -470,43 +470,58 @@ class Bot(commands.Bot):
         print(strings.keep_updated.format(self.command_prefix[0]))
         print(strings.official_server.format(strings.invite_link))
 
-        await self.start(self.base.get_token())
+        await self.start(self.base.get_token(), reconnect=reconnect)
 
         await self._stopped.wait()
 
 
 class Cog:
-    def __init__(self, bot, extension, log=True, cache=False, session=False):
-        """The base class for cogs, classes that include
-        commands, event listeners and background tasks
+    """The base class for cogs, classes that include
+    commands, event listeners and background tasks
 
-        Parameters
-        ----------
-        bot : Bot
-            The bot to add the cog to.
-        extension : str
-            The name of the extension the cog belongs to.
-        log : Optional[bool]
-            Whether to assign a ``logging.Logger`` as the
-            :attr:`log` attribute. Defaults to True.
-        cache : bool
-            Whether to assign a ``dwarf.Cache`` as the
-            :attr:`cache` attribute. Defaults to False.
-        session : bool
-            Whether to assign an ``aiohttp.ClientSession``
-            as the :attr:`session` attribute.
-            Defaults to False.
-        """
+    Parameters
+    ----------
+    bot : Bot
+        The bot to add the cog to.
+    extension : str
+        The name of the extension the cog belongs to.
+    assign_log : Optional[bool]
+        Whether to assign a ``logging.Logger`` as the
+        :attr:`log` attribute. Defaults to True.
+    assign_cache : bool
+        Whether to assign a ``dwarf.Cache`` as the
+        :attr:`cache` attribute. Defaults to False.
+    assign_session : bool
+        Whether to assign an ``aiohttp.ClientSession``
+        as the :attr:`session` attribute.
+        Defaults to False.
+
+    Attributes
+    ----------
+    log : Optional[logging.Logger]
+        The cog's logger.
+    cache : Optional[dwarf.cache.Cache]
+        The cog's cache.
+    session : Optional[aiohttp.ClientSession]
+        The cog's custom aiohttp session.
+    """
+
+    def __init__(self, bot, extension, **options):
         self.bot = bot
         self.extension = extension
-        if log:
+
+        assign_log = options.pop('assign_log', True)
+        assign_cache = options.pop('assign_cache', False)
+        assign_session = options.pop('assign_session', False)
+
+        if assign_log:
             log_name = 'dwarf.' + extension + '.cogs'
             if self.__module__ != 'cogs':
                 log_name += '.' + self.__module__
             self.log = logging.getLogger('dwarf.' + extension + '.cogs')
-        if cache:
+        if assign_cache:
             self.cache = Cache(extension, bot=bot)
-        if session:
+        if assign_session:
             self.session = aiohttp.ClientSession(loop=bot.loop)
 
 
@@ -535,13 +550,14 @@ def main(loop=None, bot=None):
     except KeyboardInterrupt:
         bot.base.disable_restarting()
         loop.run_until_complete(bot.logout())
-    except Exception as e:
+    except Exception as ex:
         error = True
-        print(e)
+        print(ex)
         error_message = traceback.format_exc()
         bot.base.disable_restarting()
         loop.run_until_complete(bot.logout())
     finally:
         if error:
             print(error_message)
-        return bot
+
+    return bot

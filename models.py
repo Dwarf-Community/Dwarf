@@ -1,10 +1,9 @@
+import importlib
+
 from django.contrib.auth.base_user import AbstractBaseUser
 from django.db import models
 
 from .controllers import BaseController
-
-import importlib
-
 
 base = BaseController()
 
