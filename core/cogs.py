@@ -535,10 +535,10 @@ class Core(Cog):
         try:
             self.core.add_prefix(prefix)
             self.bot.command_prefix = self.core.get_prefixes()
-            await ctx.send("The prefix '**" + prefix + "**' was added successfully.")
+            await ctx.send("The prefix '**{}**' was added successfully.".format(prefix))
         except PrefixAlreadyExists:
-            await ctx.send("The prefix '**" + prefix + "**' could not be added "
-                                                       "as it is already a prefix.")
+            await ctx.send("The prefix '**{}**' could not be added "
+                           "as it is already a prefix.".format(prefix))
 
     @commands.command()
     @commands.is_owner()
@@ -548,9 +548,9 @@ class Core(Cog):
         try:
             self.core.remove_prefix(prefix)
             self.bot.command_prefix = self.core.get_prefixes()
-            await ctx.send("The prefix '**" + prefix + "**' was removed successfully.")
+            await ctx.send("The prefix '**{}**' was removed successfully.".format(prefix))
         except PrefixNotFound:
-            await ctx.send("'**" + prefix + "**' is not a prefix of this bot.")
+            await ctx.send("'**{}**' is not a prefix of this bot.".format(prefix))
 
     @commands.command()
     @commands.is_owner()
@@ -559,9 +559,9 @@ class Core(Cog):
 
         prefixes = self.core.get_prefixes()
         if len(prefixes) > 1:
-            await ctx.send("My prefixes are: '**" + "**', '**".join(prefixes) + "**'")
+            await ctx.send("My prefixes are: {}".format("'**" + "**', '**".join(prefixes) + "**'"))
         else:
-            await ctx.send("My prefix is '**" + prefixes[0] + "**'.")
+            await ctx.send("My prefix is '**{}**'.".format(prefixes[0]))
 
     @commands.command()
     async def ping(self, ctx):

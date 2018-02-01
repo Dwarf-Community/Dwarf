@@ -5,6 +5,7 @@ import logging
 import os
 import sys
 import traceback
+import types
 
 import aiohttp
 import discord
@@ -413,9 +414,11 @@ class Bot(commands.Bot):
         if answer.lower().startswith('n'):
             return False
 
-    async def wait_for_choice(self, ctx, choices: list, timeout=60):
+    async def wait_for_choice(self, ctx, choices, timeout=60):
+        if isinstance(choices, types.GeneratorType):
+            choices = list(choices)
+
         choice_format = "**{}**: {}"
-        _choices = []
 
         def choice_check(message):
             try:
@@ -423,10 +426,13 @@ class Bot(commands.Bot):
             except ValueError:
                 return False
 
+        paginator = commands.Paginator(prefix='', suffix='')
         for i, _choice in enumerate(choices, 1):
-            _choices.append(choice_format.format(i, _choice))
+            paginator.add_line(choice_format.format(i, _choice))
 
-        await ctx.send("{}\n\n{}".format("Choose:", "\n".join(_choices)))
+        for page in paginator.pages:
+            await ctx.send(page)
+
         choice = await self.wait_for_response(ctx, message_check=choice_check, timeout=timeout)
         if choice is None:
             return None
