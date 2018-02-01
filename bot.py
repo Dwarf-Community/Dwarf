@@ -420,7 +420,7 @@ class Bot(commands.Bot):
         def choice_check(message):
             try:
                 return int(message.content.split(maxsplit=1)[0]) <= len(choices)
-            except TypeError:
+            except ValueError:
                 return False
 
         for i, _choice in enumerate(choices, 1):
