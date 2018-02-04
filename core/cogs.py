@@ -25,7 +25,7 @@ class Core(Cog):
 
     @commands.command(name='eval')
     @commands.is_owner()
-    async def evaluate(self, ctx, *, code):
+    async def evaluate(self, ctx, *, code: str):
         """Evaluates code.
         Modified function, originally made by Rapptz"""
         # [p]eval <code>
@@ -56,7 +56,7 @@ class Core(Cog):
 
     @commands.command()
     @commands.is_owner()
-    async def install(self, ctx, *, extensions):
+    async def install(self, ctx, *, extensions: str):
         """Installs an extension."""
         # [p] install <extensions>
 
@@ -184,7 +184,7 @@ class Core(Cog):
 
     @commands.command()
     @commands.is_owner()
-    async def update(self, ctx, *, extensions):
+    async def update(self, ctx, *, extensions: str):
         """Updates an extension."""
         # [p]update <extensions>
 
@@ -294,7 +294,7 @@ class Core(Cog):
 
     @commands.command()
     @commands.is_owner()
-    async def uninstall(self, ctx, *, extensions):
+    async def uninstall(self, ctx, *, extensions: str):
         """Uninstalls extensions."""
         # [p]uninstall <extensions>
 
@@ -362,7 +362,7 @@ class Core(Cog):
 
     @commands.command()
     @commands.is_owner()
-    async def set_name(self, ctx, *, name):
+    async def set_name(self, ctx, *, name: str):
         """Sets the bot's name."""
         # [p]set name <name>
 
@@ -374,7 +374,7 @@ class Core(Cog):
 
     @commands.command()
     @commands.is_owner()
-    async def set_nickname(self, ctx, *, nickname=""):
+    async def set_nickname(self, ctx, *, nickname: str=""):
         """Sets the bot's nickname on the current server.
         Leaving this empty will remove it."""
         # [p]set nickname <nickname>
@@ -390,7 +390,7 @@ class Core(Cog):
 
     @commands.command()
     @commands.is_owner()
-    async def set_game(self, ctx, *, game=None):
+    async def set_game(self, ctx, *, game: discord.Game=None):
         """Sets the bot's playing status
         Leaving this empty will clear it."""
         # [p]set game <game>
@@ -400,8 +400,7 @@ class Core(Cog):
         current_status = guild.me.status if guild is not None else None
 
         if game:
-            game = game.strip()
-            await self.bot.change_presence(game=discord.Game(name=game),
+            await self.bot.change_presence(game=game,
                                            status=current_status)
             await ctx.send('Game set to "{}".'.format(game))
         else:
@@ -410,7 +409,7 @@ class Core(Cog):
 
     @commands.command()
     @commands.is_owner()
-    async def set_status(self, ctx, *, status=None):
+    async def set_status(self, ctx, *, status: discord.Status=None):
         """Sets the bot's status
         Statuses:
             online
@@ -418,13 +417,6 @@ class Core(Cog):
             dnd
             invisible"""
         # [p]set status <status>
-
-        statuses = {
-            "online": discord.Status.online,
-            "idle": discord.Status.idle,
-            "dnd": discord.Status.dnd,
-            "invisible": discord.Status.invisible
-        }
 
         guild = ctx.message.guild
 
@@ -435,17 +427,13 @@ class Core(Cog):
                                            game=current_game)
             await ctx.send("Status reset.")
         else:
-            status = statuses.get(status.lower(), None)
-            if status:
-                await self.bot.change_presence(status=status,
-                                               game=current_game)
-                await ctx.send("Status changed.")
-            else:
-                await self.bot.send_command_help(ctx)
+            await self.bot.change_presence(status=status,
+                                           game=current_game)
+            await ctx.send("Status set to {0}.".format(status))
 
     @commands.command()
     @commands.is_owner()
-    async def set_stream(self, ctx, streamer=None, *, stream_title=None):
+    async def set_stream(self, ctx, streamer: str=None, *, stream_title: str=None):
         """Sets the bot's streaming status.
         Leaving both streamer and stream_title empty will clear it."""
         # [p]set stream <streamer> <stream_title>
@@ -470,7 +458,7 @@ class Core(Cog):
 
     @commands.command()
     @commands.is_owner()
-    async def set_avatar(self, ctx, url):
+    async def set_avatar(self, ctx, url: str):
         """Sets the bot's avatar."""
         # [p]set avatar <url>
 
@@ -488,7 +476,7 @@ class Core(Cog):
 
     @commands.command()
     @commands.is_owner()
-    async def set_token(self, ctx, token):
+    async def set_token(self, ctx, token: str):
         """Sets the bot's login token."""
         # [p]set token <token>
 
@@ -501,7 +489,7 @@ class Core(Cog):
 
     @commands.command()
     @commands.is_owner()
-    async def set_description(self, ctx, *, description):
+    async def set_description(self, ctx, *, description: str):
         """Sets the bot's description."""
 
         self.core.set_description(description)
@@ -510,7 +498,7 @@ class Core(Cog):
 
     @commands.command()
     @commands.is_owner()
-    async def set_repository(self, ctx, repository):
+    async def set_repository(self, ctx, repository: str):
         """Sets the bot's repository."""
 
         self.core.set_repository(repository)
@@ -518,7 +506,7 @@ class Core(Cog):
 
     @commands.command()
     @commands.is_owner()
-    async def set_officialinvite(self, ctx, invite):
+    async def set_officialinvite(self, ctx, invite: str):
         """Sets the bot's official server's invite URL."""
 
         self.core.set_official_invite(invite)
@@ -526,7 +514,7 @@ class Core(Cog):
 
     @commands.command()
     @commands.is_owner()
-    async def add_prefix(self, ctx, prefix):
+    async def add_prefix(self, ctx, prefix: str):
         """Adds a prefix to the bot."""
 
         if prefix.startswith('"') and prefix.endswith('"'):
@@ -542,7 +530,7 @@ class Core(Cog):
 
     @commands.command()
     @commands.is_owner()
-    async def remove_prefix(self, ctx, prefix):
+    async def remove_prefix(self, ctx, prefix: str):
         """Removes a prefix from the bot."""
 
         try:

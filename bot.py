@@ -11,8 +11,9 @@ import types
 import aiohttp
 import discord
 from discord.ext import commands
+from django.conf import settings
 
-from . import strings, utils, __version__
+from . import strings, utils, __version__, formatting as f
 from .cache import Cache
 from .controllers import BaseController
 from .core.controllers import CoreController
@@ -449,7 +450,7 @@ class Bot(commands.Bot):
             for page in pages:
                 await ctx.send(page)
 
-    async def on_command_error(self, ctx, error, ignore_local_handlers=False):
+    async def on_command_error(self, ctx: commands.Context, error, ignore_local_handlers=False):
         if not ignore_local_handlers:
             if hasattr(ctx.command, 'on_error'):
                 return
@@ -505,8 +506,14 @@ class Bot(commands.Bot):
             return
 
         # ignore all other exception types, but print them to stderr
+        # and send it to ctx if settings.DEBUG is True
+        error_message = "An error occured while running the command **{0}**.".format(ctx.command)
+        if settings.DEBUG:
+            error_details = traceback.format_exception(type(error), error, error.__traceback__)
+            error_details = '\n'.join(error_details)
+            error_message += f.block(error_details, 'python')
+        await ctx.send(error_message)
         print('Ignoring exception in command {}:'.format(ctx.command), file=sys.stderr)
-
         traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
 
     async def get_oauth_url(self):
