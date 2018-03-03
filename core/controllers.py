@@ -56,12 +56,12 @@ class CoreController:
 
         return self.cache.get('restarted_from')
 
-    def set_restarted_from(self, channel):
+    def set_restarted_from(self, messageable):
         """Sets the channel the bot was restarted from."""
 
-        if isinstance(channel, (discord.TextChannel, discord.DMChannel)):
-            channel = channel.id
-        return self.cache.set('restarted_from', channel)
+        if isinstance(messageable, discord.abc.Messageable):
+            return self.cache.set('restarted_from', messageable.id)
+        raise TypeError("messageable must be a discord.Messageable")
 
     def reset_restarted_from(self):
         """Resets the channel the bot was restarted from."""

@@ -19,7 +19,7 @@ class Core(Cog):
     """All commands that relate to management operations."""
 
     def __init__(self, bot, extension):
-        super().__init__(bot, extension)
+        super().__init__(bot, extension, assign_session=True)
         self.core = CoreController(bot=bot)
         self.base = BaseController(bot=bot)
 
@@ -577,7 +577,11 @@ class Core(Cog):
         # [p]restart
 
         await ctx.send("I'll be right back!")
-        await self.core.restart(restarted_from=ctx.message.channel)
+        if ctx.guild is None:
+            restarted_from = ctx.message.author
+        else:
+            restarted_from = ctx.message.channel
+        await self.core.restart(restarted_from=restarted_from)
 
     async def leave_confirmation(self, guild, ctx):
         if not ctx.message.channel.is_private:

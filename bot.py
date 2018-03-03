@@ -89,8 +89,10 @@ class Bot(commands.Bot):
 
         restarted_from = self.core.get_restarted_from()
         if restarted_from is not None:
-            restarted_from = self.get_channel(restarted_from)
-            await restarted_from.send("I'm back!")
+            restarted_from_messageable = discord.utils.get(self.get_all_channels(), id=restarted_from)
+            if restarted_from_messageable is None:
+                restarted_from_messageable = self.get_user(restarted_from)
+            await restarted_from_messageable.send("I'm back!")
             self.core.reset_restarted_from()
 
         # clear terminal screen
@@ -113,8 +115,7 @@ class Bot(commands.Bot):
         print("{}: {}\n".format(prefix_label, " ".join(list(self.core.get_prefixes()))))
         print("------\n")
         print(strings.use_this_url)
-        url = await self.get_oauth_url()
-        print(url)
+        print(self.get_oauth_url())
         print("\n------")
         self.core.enable_restarting()
 
@@ -519,13 +520,8 @@ class Bot(commands.Bot):
         print('Ignoring exception in command {}:'.format(ctx.command), file=sys.stderr)
         traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
 
-    async def get_oauth_url(self):
-        try:
-            data = await self.application_info()
-        except AttributeError:
-            print(strings.update_the_api)
-            raise
-        return discord.utils.oauth_url(data.id)
+    def get_oauth_url(self):
+        return discord.utils.oauth_url(self.user.id)
 
     async def set_bot_owner(self):
         try:
