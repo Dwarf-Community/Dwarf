@@ -22,6 +22,9 @@ class User(AbstractBaseUser):
     def get_short_name(self):
         return str(self.id)[0:7]
 
+    def __int__(self):
+        return self.id
+
 
 class Guild(models.Model):
     # I can't normalize this any further :/
@@ -32,20 +35,32 @@ class Guild(models.Model):
     url = models.CharField(max_length=256, unique=True)
     is_deleted = models.BooleanField(default=False)
 
+    def __int__(self):
+        return self.id
+
 
 class Channel(models.Model):
     id = models.BigIntegerField(primary_key=True)
     guild = models.ForeignKey(Guild, on_delete=models.CASCADE)
+
+    def __int__(self):
+        return self.id
 
 
 class Role(models.Model):
     id = models.BigIntegerField(primary_key=True)
     guild = models.ForeignKey(Guild, on_delete=models.CASCADE)
 
+    def __int__(self):
+        return self.id
+
 
 class Member(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     guild = models.ForeignKey(Guild, on_delete=models.CASCADE)
+
+    def __int__(self):
+        return self.id
 
 
 class Message(models.Model):
@@ -54,6 +69,9 @@ class Message(models.Model):
     channel = models.ForeignKey(Channel, on_delete=models.CASCADE)
     content = models.TextField(max_length=2000)
     clean_content = models.TextField(max_length=2000)
+
+    def __int__(self):
+        return self.id
 
 
 class String(models.Model):

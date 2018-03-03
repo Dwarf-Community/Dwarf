@@ -245,7 +245,7 @@ class BaseController:
             except KeyError:
                 raise ExtensionNotInIndex(extension)
 
-        exit_code = subprocess.run(['git', 'clone', repository, 'dwarf/' + extension]).returncode
+        exit_code = subprocess.run(['git', 'clone', '-q', repository, 'dwarf/' + extension]).returncode
         if exit_code > 0:
             self.delete_extension(extension)
             raise InstallationError('could not clone repository "{0}" (git exited with '

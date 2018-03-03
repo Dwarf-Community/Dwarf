@@ -5,12 +5,14 @@ from core.controllers import CoreController
 core = CoreController()
 
 
-@commands.check
-async def is_admin(ctx):
-    return core.get_user(ctx.message.author).is_staff
+def is_admin():
+    def predicate(ctx):
+        return core.get_user(ctx.message.author).is_staff
+    return commands.check(predicate)
 
 
-@commands.check
-def is_guild_owner(ctx):
-    return (ctx.message.guild is not None and
-            ctx.message.author.id == ctx.message.guild.owner.id)
+def is_guild_owner():
+    def predicate(ctx):
+        return (ctx.message.guild is not None and
+                ctx.message.author.id == ctx.message.guild.owner.id)
+    return commands.check(predicate)

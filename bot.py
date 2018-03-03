@@ -13,8 +13,7 @@ import discord
 from discord.ext import commands
 from django.conf import settings
 
-from . import strings, utils, __version__, formatting as f
-from .cache import Cache
+from . import strings, utils, __version__
 from .controllers import BaseController
 from .core.controllers import CoreController
 from .models import User, Guild, Channel
@@ -450,7 +449,7 @@ class Bot(commands.Bot):
             for page in pages:
                 await ctx.send(page)
 
-    async def on_command_error(self, ctx: commands.Context, error, ignore_local_handlers=False):
+    async def on_command_error(self, ctx, error, ignore_local_handlers=False):
         if not ignore_local_handlers:
             if hasattr(ctx.command, 'on_error'):
                 return
@@ -507,12 +506,16 @@ class Bot(commands.Bot):
 
         # ignore all other exception types, but print them to stderr
         # and send it to ctx if settings.DEBUG is True
-        error_message = "An error occured while running the command **{0}**.".format(ctx.command)
+        await ctx.send("An error occured while running the command **{0}**.".format(ctx.command))
+
         if settings.DEBUG:
             error_details = traceback.format_exception(type(error), error, error.__traceback__)
-            error_details = '\n'.join(error_details)
-            error_message += f.block(error_details, 'python')
-        await ctx.send(error_message)
+            paginator = commands.Paginator(prefix='```py')
+            for line in error_details:
+                paginator.add_line(line)
+            for page in paginator.pages:
+                await ctx.send(page)
+
         print('Ignoring exception in command {}:'.format(ctx.command), file=sys.stderr)
         traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
 
@@ -563,44 +566,21 @@ class Cog:
         The bot to add the cog to.
     extension : str
         The name of the extension the cog belongs to.
-    assign_log : Optional[bool]
-        Whether to assign a ``logging.Logger`` as the
-        :attr:`log` attribute. Defaults to True.
-    assign_cache : Optional[bool]
-        Whether to assign a ``dwarf.Cache`` as the
-        :attr:`cache` attribute. Defaults to False.
-    assign_session : Optional[bool]
-        Whether to assign an ``aiohttp.ClientSession``
-        as the :attr:`session` attribute.
-        Defaults to False.
 
     Attributes
     ----------
-    log : Optional[logging.Logger]
+    log : logging.Logger
         The cog's logger.
-    cache : Optional[dwarf.cache.Cache]
-        The cog's cache.
-    session : Optional[aiohttp.ClientSession]
-        The cog's custom aiohttp session.
     """
 
-    def __init__(self, bot, extension, **options):
+    def __init__(self, bot, extension):
         self.bot = bot
         self.extension = extension
 
-        assign_log = options.pop('assign_log', True)
-        assign_cache = options.pop('assign_cache', False)
-        assign_session = options.pop('assign_session', False)
-
-        if assign_log:
-            log_name = 'dwarf.' + extension + '.cogs'
-            if self.__module__ != 'cogs':
-                log_name += '.' + self.__module__
-            self.log = logging.getLogger('dwarf.' + extension + '.cogs')
-        if assign_cache:
-            self.cache = Cache(extension, bot=bot)
-        if assign_session:
-            self.session = aiohttp.ClientSession(loop=bot.loop)
+        log_name = 'dwarf.' + extension + '.cogs'
+        if self.__module__ != 'cogs':
+            log_name += '.' + self.__module__
+        self.log = logging.getLogger('dwarf.' + extension + '.cogs')
 
 
 def main(loop=None, bot=None):

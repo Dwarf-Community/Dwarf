@@ -224,7 +224,7 @@ class CoreController:
         """
 
         if isinstance(guild, discord.Guild):
-            return Guild.objects.get(id=guild.id)
+            return Guild.objects.get_or_create(id=guild.id)[0]
         return Guild.objects.get(id=guild)
 
     @staticmethod
@@ -252,7 +252,8 @@ class CoreController:
         """
 
         if isinstance(channel, discord.TextChannel):
-            return Channel.objects.get(id=channel.id)
+            return Channel.objects.get_or_create(id=channel.id,
+                                                 guild=Guild.objects.get_or_create(id=channel.guild.id)[0])[0]
         return Channel.objects.get(id=channel)
 
     @staticmethod
@@ -286,7 +287,7 @@ class CoreController:
         """
 
         if isinstance(role, discord.Role):
-            return Role.objects.get(id=role.id)
+            return Role.objects.get_or_create(id=role.id, guild=role.guild.id)[0]
         return Role.objects.get(id=role)
 
     @staticmethod
@@ -325,20 +326,19 @@ class CoreController:
         """
 
         if isinstance(member, discord.Member):
-            user_id = member.id
-            guild_id = member.guild.id
+            return Member.objects.get_or_create(user=member.id, guild=member.guild.id)[0]
+
+        if user is None or guild is None:
+            raise ValueError("Either a Member object or both user ID "
+                             "and guild ID must be given as argument(s).")
+        if isinstance(user, discord.User):
+            user_id = user.id
         else:
-            if user is None or guild is None:
-                raise ValueError("Either a Member object or both user ID "
-                                 "and guild ID must be given as argument(s).")
-            if isinstance(user, discord.User):
-                user_id = user.id
-            else:
-                user_id = user
-            if isinstance(guild, discord.Guild):
-                guild_id = guild.id
-            else:
-                guild_id = guild
+            user_id = user
+        if isinstance(guild, discord.Guild):
+            guild_id = guild.id
+        else:
+            guild_id = guild
 
         return Member.objects.get(user=user_id, guild=guild_id)
 
@@ -385,7 +385,9 @@ class CoreController:
             Can be a `discord.Message` object or a message ID."""
 
         if isinstance(message, discord.Message):
-            return Message.objects.get(id=message.id)
+            return Message.objects.get_or_create(id=message.id, user=message.author.id,
+                                                 channel=message.channel.id, content=message.content,
+                                                 clean_content=message.clean_content)[0]
         else:
             return Message.objects.get(id=message)
 
