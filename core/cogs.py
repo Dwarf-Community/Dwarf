@@ -19,7 +19,7 @@ class Core(Cog):
     """All commands that relate to management operations."""
 
     def __init__(self, bot, extension):
-        super().__init__(bot, extension, assign_session=True)
+        super().__init__(bot, extension)
         self.core = CoreController(bot=bot)
         self.base = BaseController(bot=bot)
 
@@ -463,9 +463,7 @@ class Core(Cog):
         # [p]set avatar <url>
 
         try:
-            async with self.session.get(url) as file:
-                data = await file.read()
-            await self.bot.user.edit(avatar=data)
+            await self.core.set_avatar(url)
             await ctx.send("Done.")
             self.log.debug("Changed avatar.")
         except discord.HTTPException as ex:

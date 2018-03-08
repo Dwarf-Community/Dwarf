@@ -1,4 +1,7 @@
+import asyncio
+
 import discord
+import aiohttp
 
 from dwarf.cache import Cache
 from dwarf.models import User, Guild, Channel, Role, Member, Message
@@ -28,13 +31,16 @@ class CoreController:
     ----------
     cache : :class:`Cache`
         The cache backend connection of the controller.
-    bot
+    bot : :class:`Bot`
         The bot that will be restarted, shut down etc.
     """
 
     def __init__(self, bot=None):
         self.cache = Cache(bot=bot)
         self.bot = bot
+        self.loop = bot.loop if bot is not None else asyncio.get_event_loop()
+        if bot is not None:
+            self._session = aiohttp.ClientSession(loop=self.loop)
 
     def enable_restarting(self):
         """Makes Dwarf restart whenever it is terminated until `disable_restarting` is called."""
@@ -181,6 +187,11 @@ class CoreController:
         """
 
         self.cache.set('official_invite', invite_link)
+
+    async def set_avatar(url):
+        async with session.get(url) as img:
+            image_data = await img.read()
+        await self.bot.user.edit(avatar=image_data)
 
     @staticmethod
     def get_user(user):
