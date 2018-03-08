@@ -327,8 +327,11 @@ class Bot(commands.Bot):
         for extension in extensions:
             try:
                 self.load_extension(extension)
-            except Exception as ex:
-                print("{}: {}".format(ex.__class__.__name__, str(ex)))
+            except Exception as error:
+                if not settings.DEBUG:
+                    print("{}: {}".format(error.__class__.__name__, str(error)))
+                else:
+                    traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
                 failed.append(extension)
 
         if failed:
