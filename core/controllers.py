@@ -38,7 +38,10 @@ class CoreController:
     def __init__(self, bot=None):
         self.cache = Cache(bot=bot)
         self.bot = bot
-        self.loop = bot.loop if bot is not None else asyncio.get_event_loop()
+        if hasattr(bot, 'loop'):
+            self.loop = bot.loop
+        else:
+            self.loop = asyncio.get_event_loop()
         if bot is not None:
             self._session = aiohttp.ClientSession(loop=self.loop)
 
